@@ -10,7 +10,6 @@
 > **Rip apart email headers in seconds.** SPF, DKIM, DMARC, ARC, hop-by-hop routing, phishing indicators — all in a clean dark UI. Zero data retained. Ever.
 
 ---
-![MailHSC screenshot](.github/screenshots/mailhsc-screenshot.png)
 
 ## ✨ Features
 
