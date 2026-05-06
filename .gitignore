@@ -1,0 +1,21 @@
+# Build output
+mailhsc
+*.exe
+
+# Environment — contains secrets, never commit
+.env
+
+# Docker volumes (if accidentally created locally)
+caddy_data/
+caddy_config/
+traefik_letsencrypt/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
