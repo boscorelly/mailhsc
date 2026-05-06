@@ -5,9 +5,12 @@
 [![Traefik](https://img.shields.io/badge/Traefik-v3.6-24A1C1?logo=traefikproxy)](https://traefik.io)
 [![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker)](https://docker.com)
 
+![MailHSC screenshot](.github/screenshots/mailhsc-screenshot.png)
+
 > **Rip apart email headers in seconds.** SPF, DKIM, DMARC, ARC, hop-by-hop routing, phishing indicators — all in a clean dark UI. Zero data retained. Ever.
 
 ---
+![MailHSC screenshot](.github/screenshots/mailhsc-screenshot.png)
 
 ## ✨ Features
 
