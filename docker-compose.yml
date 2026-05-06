@@ -1,0 +1,223 @@
+# Variables are loaded from .env (copy .env.example → .env and fill in values).
+# All sensitive values (credentials, domain, email) live only in .env — never
+# hardcoded here. .env must NOT be committed to git (it is in .gitignore).
+
+services:
+
+  # ─── Go application ───────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mailhsc-app:latest
+    container_name: mailhsc-app
+    restart: unless-stopped
+
+    environment:
+      PORT: "${PORT:-8080}"
+
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777,size=16m
+
+    cap_drop:
+      - ALL
+
+    networks:
+      - mailhsc_internal
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          memory: 32M
+
+    healthcheck:
+      test: ["CMD", "/mailhsc", "--health-check"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+    expose:
+      - "8080"
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "mailhsc_internal"
+
+      # ── Router: main HTTPS ──────────────────────────────────────────────────
+      traefik.http.routers.mailhsc.rule: "Host(`${DOMAIN:-localhost}`)"
+      traefik.http.routers.mailhsc.entrypoints: "websecure"
+      traefik.http.routers.mailhsc.tls: "true"
+      # certresolver: leave empty for localhost (Traefik self-signed), set letsencrypt-tls or letsencrypt-dns for production
+      traefik.http.routers.mailhsc.tls.certresolver: "${ACME_RESOLVER:-}"
+      # tls.options applied globally via dynamic.yml file provider
+      traefik.http.routers.mailhsc.middlewares: "mailhsc-security-headers@docker,mailhsc-body-limit@docker,mailhsc-compress@docker"
+
+      # ── Router: /api/analyze — rate limited (priority > catch-all) ──────────
+      traefik.http.routers.mailhsc-api.rule: "Host(`${DOMAIN:-localhost}`) && Path(`/api/analyze`)"
+      traefik.http.routers.mailhsc-api.entrypoints: "websecure"
+      traefik.http.routers.mailhsc-api.tls: "true"
+      traefik.http.routers.mailhsc-api.tls.certresolver: "${ACME_RESOLVER:-}"
+      traefik.http.routers.mailhsc-api.priority: "10"
+      traefik.http.routers.mailhsc-api.middlewares: "mailhsc-security-headers@docker,mailhsc-body-limit@docker,mailhsc-rate-limit@docker,mailhsc-compress@docker"
+
+      # ── Router: /api/health — blocked from public internet ──────────────────
+      traefik.http.routers.mailhsc-health.rule: "Host(`${DOMAIN:-localhost}`) && Path(`/api/health`)"
+      traefik.http.routers.mailhsc-health.entrypoints: "websecure"
+      traefik.http.routers.mailhsc-health.tls: "true"
+      traefik.http.routers.mailhsc-health.tls.certresolver: "${ACME_RESOLVER:-}"
+      traefik.http.routers.mailhsc-health.priority: "20"
+      traefik.http.routers.mailhsc-health.middlewares: "mailhsc-block-health@docker"
+
+      # ── Service ─────────────────────────────────────────────────────────────
+      traefik.http.services.mailhsc.loadbalancer.server.port: "${PORT:-8080}"
+      traefik.http.services.mailhsc.loadbalancer.healthcheck.path: "/api/health"
+      traefik.http.services.mailhsc.loadbalancer.healthcheck.interval: "15s"
+      traefik.http.services.mailhsc.loadbalancer.healthcheck.timeout: "5s"
+
+      # ── Middleware: security headers ─────────────────────────────────────────
+      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.X-Content-Type-Options: "nosniff"
+      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.X-Frame-Options: "DENY"
+      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.X-XSS-Protection: "1; mode=block"
+      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Referrer-Policy: "no-referrer"
+      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Permissions-Policy: "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), usb=(), web-share=(), xr-spatial-tracking=()"
+      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Content-Security-Policy: "default-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Server: ""
+      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.X-Powered-By: ""
+      traefik.http.middlewares.mailhsc-security-headers.headers.stsSeconds: "31536000"
+      traefik.http.middlewares.mailhsc-security-headers.headers.stsIncludeSubdomains: "true"
+      traefik.http.middlewares.mailhsc-security-headers.headers.stsPreload: "true"
+      traefik.http.middlewares.mailhsc-security-headers.headers.forceSTSHeader: "true"
+
+      # ── Middleware: body size limit — 6 MB ───────────────────────────────────
+      traefik.http.middlewares.mailhsc-body-limit.buffering.maxRequestBodyBytes: "6291456"
+      traefik.http.middlewares.mailhsc-body-limit.buffering.memRequestBodyBytes: "1048576"
+
+      # ── Middleware: rate limit per source IP on /api/analyze ─────────────────
+      traefik.http.middlewares.mailhsc-rate-limit.ratelimit.average: "10"
+      traefik.http.middlewares.mailhsc-rate-limit.ratelimit.burst: "20"
+      traefik.http.middlewares.mailhsc-rate-limit.ratelimit.period: "1s"
+      # depth=0: use RemoteAddr (real client TCP IP) — correct when Traefik is the edge.
+      # Set depth=1 only if a trusted CDN/proxy sits in front of Traefik.
+      traefik.http.middlewares.mailhsc-rate-limit.ratelimit.sourcecriterion.ipstrategy.depth: "0"
+
+      # ── Middleware: block /api/health from public internet ────────────────────
+      traefik.http.middlewares.mailhsc-block-health.ipallowlist.sourcerange: "127.0.0.1/32,::1/128"
+
+      # ── Middleware: gzip/brotli compression ──────────────────────────────────
+      traefik.http.middlewares.mailhsc-compress.compress: "true"
+
+  # ─── Traefik reverse proxy ────────────────────────────────────────────────────
+  traefik:
+    # Pin to digest after first pull: run ./scripts/pin-images.sh
+    image: traefik:v3.6.15
+    container_name: mailhsc-traefik
+    restart: unless-stopped
+
+    # All static config passed as CLI args — avoids YAML variable substitution issues.
+    # Dynamic config (TLS options) still loaded from file provider (dynamic.yml).
+    command:
+      - "--global.sendAnonymousUsage=false"
+      - "--global.checkNewVersion=false"
+      # Entrypoints
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entryPoints.web.http.redirections.entryPoint.permanent=true"
+      - "--entryPoints.websecure.address=:443"
+      - "--entryPoints.websecure.http3"
+      # Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      # File provider for dynamic config (TLS options)
+      - "--providers.file.filename=/traefik/dynamic.yml"
+      - "--providers.file.watch=false"
+      # ACME — TLS challenge
+      - "--certificatesResolvers.letsencrypt-tls.acme.email=${TRAEFIK_ACME_EMAIL:-admin@yourdomain.com}"
+      - "--certificatesResolvers.letsencrypt-tls.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesResolvers.letsencrypt-tls.acme.tlsChallenge=true"
+      # ACME — DNS challenge
+      - "--certificatesResolvers.letsencrypt-dns.acme.email=${TRAEFIK_ACME_EMAIL:-admin@yourdomain.com}"
+      - "--certificatesResolvers.letsencrypt-dns.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesResolvers.letsencrypt-dns.acme.dnsChallenge=true"
+      - "--certificatesResolvers.letsencrypt-dns.acme.dnsChallenge.provider=${TRAEFIK_DNS_PROVIDER:-ovh}"
+      - "--certificatesResolvers.letsencrypt-dns.acme.dnsChallenge.delayBeforeCheck=30"
+      - "--certificatesResolvers.letsencrypt-dns.acme.dnsChallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
+      # API/dashboard disabled
+      - "--api=false"
+      # Logging
+      - "--log.level=WARN"
+      - "--accessLog=true"
+      - "--accessLog.filters.statusCodes=400-599"
+
+    environment:
+      # DNS provider credentials — read from .env, passed to container for ACME DNS challenge
+      TRAEFIK_DNS_PROVIDER: "${TRAEFIK_DNS_PROVIDER:-}"
+      OVH_ENDPOINT: "${OVH_ENDPOINT:-}"
+      OVH_APPLICATION_KEY: "${OVH_APPLICATION_KEY:-}"
+      OVH_APPLICATION_SECRET: "${OVH_APPLICATION_SECRET:-}"
+      OVH_CONSUMER_KEY: "${OVH_CONSUMER_KEY:-}"
+      CF_DNS_API_TOKEN: "${CF_DNS_API_TOKEN:-}"
+      GANDIV5_PERSONAL_ACCESS_TOKEN: "${GANDIV5_PERSONAL_ACCESS_TOKEN:-}"
+      SCALEWAY_API_TOKEN: "${SCALEWAY_API_TOKEN:-}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
+      AWS_REGION: "${AWS_REGION:-}"
+      DO_AUTH_TOKEN: "${DO_AUTH_TOKEN:-}"
+      NAMECHEAP_API_USER: "${NAMECHEAP_API_USER:-}"
+      NAMECHEAP_API_KEY: "${NAMECHEAP_API_KEY:-}"
+
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+    volumes:
+      - ./traefik/dynamic.yml:/traefik/dynamic.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+    networks:
+      - mailhsc_internal
+      - mailhsc_external
+
+    depends_on:
+      - app
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  mailhsc_internal:
+    internal: true
+    driver: bridge
+  mailhsc_external:
+    driver: bridge
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  traefik_letsencrypt:

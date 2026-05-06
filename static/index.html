@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MailHSC — Header Security Checker</title>
+<!-- Fonts served locally — no external requests (RGPD compliant) -->
+<link rel="preload" href="/fonts/syne-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/syne-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/jetbrains-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/style.css">
+<!-- i18n must load before app.js -->
+<script src="/js/i18n.js"></script>
+</head>
+<body>
+<div class="noise"></div>
+
+<header>
+  <div class="logo">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="2" y="6" width="24" height="16" rx="2" stroke="var(--accent)" stroke-width="1.5"/><path d="M2 9l12 8 12-8" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/><circle cx="22" cy="20" r="5" fill="var(--bg)" stroke="var(--accent2)" stroke-width="1.5"/><path d="M20 20l1.5 1.5L24 18.5" stroke="var(--accent2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Mail<strong>HSC</strong></span>
+  </div>
+  <div class="tagline" data-i18n="tagline"></div>
+  <div class="theme-toggle" role="group" aria-label="Theme">
+    <button class="theme-btn" id="themeAuto" title="Auto">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    </button>
+    <button class="theme-btn" id="themeLight" title="Light">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.22 3.22l1.42 1.42M11.36 11.36l1.42 1.42M3.22 12.78l1.42-1.42M11.36 4.64l1.42-1.42" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    </button>
+    <button class="theme-btn" id="themeDark" title="Dark">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13.5 10.5A6 6 0 0 1 5.5 2.5a6 6 0 1 0 8 8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <section class="input-section" id="inputSection">
+    <div class="input-card">
+      <div class="tabs">
+        <button class="tab active" data-tab="paste" data-i18n="pasteHeaders"></button>
+        <button class="tab" data-tab="upload" data-i18n="uploadEml"></button>
+      </div>
+
+      <div class="tab-content" id="tab-paste">
+        <textarea id="headersInput" data-i18n-placeholder="placeholder"></textarea>
+        <div class="input-actions">
+          <button class="btn-secondary" id="clearBtn" data-i18n="clear"></button>
+          <button class="btn-primary" id="analyzeBtn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span data-i18n="analyze"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="tab-content hidden" id="tab-upload">
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".eml,.txt,message/rfc822" hidden>
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M20 28V12M20 12l-6 6M20 12l6 6" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="28" width="32" height="8" rx="2" stroke="var(--muted)" stroke-width="1.5"/></svg>
+          <p data-i18n="dragDrop"></p>
+          <span data-i18n="or"></span>
+          <button class="btn-secondary" id="browseBtn" data-i18n="browseFile"></button>
+          <div class="file-selected hidden" id="fileSelected">
+            <span id="fileName"></span>
+            <button class="remove-file" id="removeFile">✕</button>
+          </div>
+        </div>
+        <div class="input-actions">
+          <button class="btn-primary" id="analyzeFileBtn" disabled>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span data-i18n="analyze"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="privacy-note">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5L2 4v4c0 2.761 2.239 4.5 5 4.5s5-1.739 5-4.5V4L7 1.5z" stroke="var(--accent2)" stroke-width="1.2"/><path d="M5 7l1.5 1.5L9 5.5" stroke="var(--accent2)" stroke-width="1.2" stroke-linecap="round"/></svg>
+      <span data-i18n="privacyNote"></span>
+    </div>
+  </section>
+
+  <div class="loading hidden" id="loading">
+    <div class="spinner"></div>
+    <span data-i18n="analyzing"></span>
+  </div>
+
+  <div class="error-box hidden" id="errorBox">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--danger)" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--danger)" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <span id="errorMsg"></span>
+  </div>
+
+  <section class="results hidden" id="results">
+    <div class="results-header">
+      <h2 data-i18n="analysisReport"></h2>
+      <button class="btn-ghost" id="newAnalysisBtn" data-i18n="newAnalysis"></button>
+    </div>
+
+    <div class="score-card" id="scoreCard">
+      <div class="score-ring">
+        <svg viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" stroke-width="8"/>
+          <circle cx="60" cy="60" r="52" fill="none" stroke-width="8"
+            stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"
+            id="scoreArc" transform="rotate(-90 60 60)"/>
+        </svg>
+        <div class="score-value"><span id="scoreNum">0</span><small>/100</small></div>
+      </div>
+      <div class="score-info">
+        <div class="score-label" data-i18n="securityScore"></div>
+        <div class="auth-pills" id="authPills"></div>
+        <div class="issues-list" id="issuesList"></div>
+        <div class="passed-list" id="passedList"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="var(--accent)" stroke-width="1.2"/><path d="M5 6h6M5 9h4" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span data-i18n="summary"></span>
+      </div>
+      <div class="summary-grid" id="summaryGrid"></div>
+    </div>
+
+    <div class="panel" id="hopsPanel">
+      <div class="panel-header">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="3" cy="8" r="2" stroke="var(--accent)" stroke-width="1.2"/><circle cx="13" cy="8" r="2" stroke="var(--accent)" stroke-width="1.2"/><circle cx="8" cy="8" r="2" stroke="var(--accent)" stroke-width="1.2"/><path d="M5 8h1M10 8h1" stroke="var(--accent)" stroke-width="1.2"/></svg>
+        <span data-i18n="routingPath"></span>
+        <span class="panel-count" id="hopsCount"></span>
+      </div>
+      <div class="hops-timeline" id="hopsTimeline"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L2 4.5v4c0 3.314 2.686 5.5 6 5.5s6-2.186 6-5.5v-4L8 1.5z" stroke="var(--accent)" stroke-width="1.2"/><path d="M5.5 8.5l2 2 3-3.5" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span data-i18n="authentication"></span>
+      </div>
+      <div class="auth-grid" id="authGrid"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h7M3 12h9" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span data-i18n="allHeaders"></span>
+        <span class="panel-count" id="headersCount"></span>
+        <button class="btn-ghost small" id="toggleHeaders" data-i18n="showAll"></button>
+      </div>
+      <div class="headers-table" id="headersTable"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>MailHSC · Header Security Checker</span>
+  <span data-i18n="footer"></span>
+</footer>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
