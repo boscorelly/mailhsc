@@ -29,7 +29,7 @@
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/youruser/mailhsc.git
+git clone https://github.com/boscorelly/mailhsc.git
 cd mailhsc
 make up
 ```
@@ -159,35 +159,6 @@ The score is floored at **0** (cannot go negative).
 ```bash
 ./scripts/pin-images.sh   # prints SHA256 digests — pin them in compose + Dockerfile
 ```
-
----
-
-## 🎯 Security Score
-
-The score starts at **100** and points are deducted for each issue detected:
-
-| Condition | Deduction |
-|---|---|
-| SPF fail / softfail | −25 |
-| SPF missing | −15 |
-| SPF unknown result | −5 |
-| DKIM fail | −25 |
-| DKIM missing | −10 |
-| DKIM present but unverified | −5 |
-| DMARC fail | −20 |
-| DMARC missing | −5 |
-| ARC fail | −10 |
-| Reply-To domain ≠ From domain | −20 |
-| Reply-To ≠ From (same domain) | −5 |
-| X-Spam-Flag: YES | −20 |
-
-The score is floored at **0**. Hop delays > 1 hour are flagged as informational but do not affect the score.
-
-**Examples:**
-- SPF pass + DKIM pass + DMARC pass → **100**
-- SPF missing + DKIM missing + DMARC missing → **70**
-- SPF fail + DKIM fail + suspicious Reply-To → **30**
-- Everything fails + spam flag → **0** (floored)
 
 ---
 
