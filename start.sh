@@ -3,6 +3,19 @@ set -e
 
 cd "$(dirname "$0")"
 
+# Detect docker compose command (plugin vs standalone)
+if docker compose version > /dev/null 2>&1; then
+    DC="docker compose"
+elif docker-compose version > /dev/null 2>&1; then
+    DC="docker-compose"
+else
+    echo ""
+    echo "  ✖  ERROR: neither 'docker compose' nor 'docker-compose' found."
+    echo "     Please install Docker with the Compose plugin."
+    echo ""
+    exit 1
+fi
+
 if [ ! -f .env.example ]; then
     echo ""
     echo "  ✖  ERROR: .env.example not found."
@@ -37,12 +50,12 @@ MODE=${MODE:-standalone}
 
 if [ "$MODE" = "full" ]; then
     echo "  ▶  Starting MailHSC (full mode — Traefik + HTTPS)..."
-    docker compose -f docker-compose.yml up -d
+    $DC -f docker-compose.yml up -d
 elif [ "$MODE" = "standalone" ]; then
     PORT=$(grep "^STANDALONE_PORT=" .env | cut -d= -f2 | tr -d '[:space:]')
     PORT=${PORT:-8080}
     echo "  ▶  Starting MailHSC (standalone mode — http://localhost:${PORT})..."
-    docker compose -f docker-compose.standalone.yml up -d
+    $DC -f docker-compose.standalone.yml up -d
 else
     echo ""
     echo "  ✖  ERROR: unknown DEPLOY_MODE='${MODE}'. Use 'full' or 'standalone'."
