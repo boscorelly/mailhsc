@@ -1,13 +1,16 @@
 .PHONY: up down logs build
 
+DC := $(shell docker compose version > /dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+
 up:
 	@sh start.sh
 
 down:
-	docker compose down
+	$(DC) -f docker-compose.yml down 2>/dev/null || true
+	$(DC) -f docker-compose.standalone.yml down 2>/dev/null || true
 
 logs:
-	docker compose logs -f
+	$(DC) logs -f 2>/dev/null || $(DC) -f docker-compose.standalone.yml logs -f
 
 build:
-	docker compose build
+	$(DC) build

@@ -36,43 +36,44 @@ cd mailhsc
 make up
 ```
 
-`make up` runs `start.sh` which:
-1. Creates `.env` from `.env.example` if it doesn't exist
-2. Aborts if `TRAEFIK_ACME_EMAIL` is still the placeholder and `DOMAIN` is not `localhost`
-3. Runs `docker compose up -d`
+`make up` runs `start.sh` which reads `DEPLOY_MODE` from `.env` and starts the right stack:
 
-| Mode | URL | Certificate |
-|---|---|---|
-| **Local dev** | https://localhost | Traefik self-signed (accept browser warning once) |
-| **Production** | https://yourdomain.com | Let's Encrypt — automatic |
+| `DEPLOY_MODE` | URL | TLS | Use case |
+|---|---|---|---|
+| `standalone` *(default)* | http://localhost:8080 | None | Local dev, behind existing proxy |
+| `full` | https://yourdomain.com | Let's Encrypt auto | Production |
 
-> Always use `make up`, never `docker compose up -d` directly.
+> Always use `make up` — never `docker compose up -d` directly.
 
 ---
 
 ## ⚙️ Configuration
 
-Everything lives in `.env` (auto-created from `.env.example` on first `make up`):
+Everything lives in `.env` (auto-created from `.env.example` on first `make up`).
 
-### Local dev — nothing to change
+### Standalone — default, no config needed
 
 ```env
-DOMAIN=localhost
-TRAEFIK_ACME_EMAIL=admin@yourdomain.com
-ACME_RESOLVER=          # empty = Traefik self-signed cert
+DEPLOY_MODE=standalone
+STANDALONE_PORT=8080    # port exposed on the host
 ```
 
-### Production
+Starts a single container on `http://localhost:8080`. No TLS, no Traefik.
+Ideal for local dev or placement behind an existing reverse proxy (Nginx, Caddy…).
+
+### Full — production with automatic HTTPS
 
 ```env
+DEPLOY_MODE=full
 DOMAIN=mail.yourdomain.com
-TRAEFIK_ACME_EMAIL=admin@yourdomain.com   # real email for expiry notifications
-ACME_RESOLVER=letsencrypt-tls             # TLS-ALPN-01, port 443 must be reachable
+TRAEFIK_ACME_EMAIL=admin@yourdomain.com
+ACME_RESOLVER=letsencrypt-tls        # TLS-ALPN-01, port 443 must be reachable
 ```
 
-### Production behind NAT / wildcard cert
+### Full — behind NAT or wildcard certificate
 
 ```env
+DEPLOY_MODE=full
 DOMAIN=mail.yourdomain.com
 TRAEFIK_ACME_EMAIL=admin@yourdomain.com
 ACME_RESOLVER=letsencrypt-dns
