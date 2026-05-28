@@ -8,6 +8,7 @@
 ![MailHSC screenshot](.github/screenshots/mailhsc-screenshot.png)
 
 > **Rip apart email headers in seconds.** SPF, DKIM, DMARC, ARC, hop-by-hop routing, phishing indicators — all in a clean dark UI. Zero data retained. Ever.
+> RFC 9989 / 9990 / 9991 (DMARCbis, May 2026) compatible.
 
 ---
 
@@ -17,7 +18,7 @@
 |---|---|
 | 📋 | Paste raw headers **or** upload a `.eml` file |
 | 🛤️ | Hop-by-hop routing visualization with delay indicators |
-| 🔐 | SPF / DKIM / DMARC / ARC extraction & scoring |
+| 🔐 | SPF / DKIM / DMARC / ARC / NP extraction & scoring — RFC 9989 (DMARCbis) ready |
 | 🎯 | Security score (0–100) with actionable breakdown |
 | 🎣 | Reply-To ≠ From domain detection (phishing indicator) |
 | 🌍 | Auto language detection — 🇬🇧 🇫🇷 🇩🇪 🇪🇸 |
@@ -104,11 +105,14 @@ The score starts at **100** and points are deducted for each issue detected:
 | DMARC fail | −20 |
 | DMARC missing | −5 |
 | ARC fail | −10 |
+| NP fail (RFC 9989 subdomain policy) | −10 |
 | Reply-To domain ≠ From domain | −20 |
 | Reply-To ≠ From (same domain) | −5 |
 | X-Spam-Flag: YES | −20 |
 
 The score is floored at **0** (cannot go negative).
+
+> **RFC 9989 / DMARCbis (May 2026):** The `np=` tag (non-existent subdomain policy) is parsed from `Authentication-Results` when present. Result values are matched up to 32 characters to handle any future `bestguesspass`-style values. Existing `v=DMARC1` records remain fully valid — no changes needed.
 
 **ARC** (`none`) is neutral — the protocol is optional and not yet widely deployed.  
 **Hop delays** > 1 hour are flagged as informational but do not affect the score.
