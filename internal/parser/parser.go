@@ -64,12 +64,13 @@ type Hop struct {
 	Index     int    `json:"index"`
 }
 
-// AuthResult holds SPF/DKIM/DMARC/ARC results.
+// AuthResult holds SPF/DKIM/DMARC/ARC results and the DMARCbis np= subdomain policy result.
 type AuthResult struct {
 	SPF   AuthEntry `json:"spf"`
 	DKIM  AuthEntry `json:"dkim"`
 	DMARC AuthEntry `json:"dmarc"`
 	ARC   AuthEntry `json:"arc"`
+	NP    AuthEntry `json:"np"`  // RFC 9989 non-published subdomain policy result
 }
 
 // AuthEntry holds one authentication protocol result.
@@ -103,10 +104,14 @@ var (
 	reReceivedBy   = regexp.MustCompile(`(?i)by\s+(\S{1,253})`)
 	reReceivedWith = regexp.MustCompile(`(?i)with\s+(\S{1,64})`)
 	reReceivedDate = regexp.MustCompile(`(?i);\s*(.{1,64})$`)
-	reSPF          = regexp.MustCompile(`(?i)spf=(\w{1,16})`)
-	reDKIM         = regexp.MustCompile(`(?i)dkim=(\w{1,16})`)
-	reDMARC        = regexp.MustCompile(`(?i)dmarc=(\w{1,16})`)
-	reARC          = regexp.MustCompile(`(?i)arc=(\w{1,16})`)
+	// Result values: pass, fail, none, neutral, softfail, temperror, permerror,
+	// bestguesspass (RFC 9989), and any future hyphenated or longer values.
+	reSPF          = regexp.MustCompile(`(?i)spf=([\w-]{1,32})`)
+	reDKIM         = regexp.MustCompile(`(?i)dkim=([\w-]{1,32})`)
+	reDMARC        = regexp.MustCompile(`(?i)dmarc=([\w-]{1,32})`)
+	reARC          = regexp.MustCompile(`(?i)arc=([\w-]{1,32})`)
+	// np= tag: non-published subdomain policy result (RFC 9989 DMARCbis)
+	reNP           = regexp.MustCompile(`(?i)\bnp=([\w-]{1,32})`)
 	reXSpam        = regexp.MustCompile(`(?i)x-spam`)
 )
 
@@ -329,6 +334,7 @@ func parseAuth(h mail.Header) AuthResult {
 		DKIM:  AuthEntry{Result: "none"},
 		DMARC: AuthEntry{Result: "none"},
 		ARC:   AuthEntry{Result: "none"},
+		NP:    AuthEntry{Result: "none"},
 	}
 	for _, authLine := range h["Authentication-Results"] {
 		lower := strings.ToLower(authLine)
@@ -343,6 +349,10 @@ func parseAuth(h mail.Header) AuthResult {
 		}
 		if m := reARC.FindStringSubmatch(lower); m != nil {
 			ar.ARC = AuthEntry{Result: m[1]}
+		}
+		// RFC 9989 DMARCbis: np= result for non-existent subdomain policy
+		if m := reNP.FindStringSubmatch(lower); m != nil {
+			ar.NP = AuthEntry{Result: m[1], Details: truncate(extractDetail(authLine, "np"), 256)}
 		}
 	}
 	if ar.SPF.Result == "none" {
@@ -418,6 +428,15 @@ func computeSecurity(r *Result) Security {
 	}
 
 	// ARC: only scored when present — none is neutral (optional protocol)
+	// NP (RFC 9989): non-published subdomain policy — only score if present
+	switch r.Auth.NP.Result {
+	case "pass":
+		sec.Passed = append(sec.Passed, Pass{"npPass"})
+	case "fail":
+		sec.Issues = append(sec.Issues, Issue{"medium", "npFail", []string{}})
+		sec.Score -= 10
+	}
+
 	switch r.Auth.ARC.Result {
 	case "pass":
 		sec.Passed = append(sec.Passed, Pass{"arcPass"})

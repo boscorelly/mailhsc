@@ -202,7 +202,7 @@ function renderScore(sec, auth) {
   // Auth pills — resultClass() whitelists CSS class names
   var pills = document.getElementById('authPills');
   pills.innerHTML = '';
-  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc]].forEach(function(entry) {
+  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['NP', auth.np]].forEach(function(entry) {
     var proto = entry[0], e = entry[1];
     var cls   = resultClass(e.result);           // whitelisted CSS class
     var span  = document.createElement('span');
@@ -358,7 +358,7 @@ function makeDelayBadge(delay, index) {
 function renderAuth(auth) {
   var grid = document.getElementById('authGrid');
   grid.innerHTML = '';
-  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['ARC', auth.arc]].forEach(function(e) {
+  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['ARC', auth.arc], ['NP', auth.np]].forEach(function(e) {
     var proto = e[0], entry = e[1];
     var item  = document.createElement('div'); item.className = 'auth-item';
 
