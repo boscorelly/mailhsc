@@ -18,6 +18,10 @@ import (
 //go:embed static
 var staticFiles embed.FS
 
+// Version is set at build time via -ldflags "-X main.Version=x.y.z"
+// Falls back to "dev" when running outside of a release build.
+var Version = "dev"
+
 func main() {
 	// Self-healthcheck mode for Docker HEALTHCHECK instruction.
 	// The binary is called with --health-check; it hits its own HTTP server
@@ -29,7 +33,12 @@ func main() {
 		}
 		client := &http.Client{Timeout: 3 * time.Second}
 		resp, err := client.Get("http://localhost:" + port + "/api/health")
-		if err != nil || resp.StatusCode != http.StatusOK {
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "health check failed")
+			os.Exit(1)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
 			fmt.Fprintln(os.Stderr, "health check failed")
 			os.Exit(1)
 		}
@@ -48,6 +57,7 @@ func main() {
 	// API endpoints
 	mux.HandleFunc("/api/analyze", withSecurity(handleAnalyze))
 	mux.HandleFunc("/api/health", handleHealth)
+	mux.HandleFunc("/api/version", handleVersion)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -190,6 +200,16 @@ func noListingFileServer(root http.FileSystem) http.Handler {
 		}
 		fs.ServeHTTP(w, r)
 	})
+}
+
+func handleVersion(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		jsonError(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	json.NewEncoder(w).Encode(map[string]string{"version": Version})
 }
 
 func jsonError(w http.ResponseWriter, msg string, code int) {
