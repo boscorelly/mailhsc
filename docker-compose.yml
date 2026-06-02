@@ -223,9 +223,11 @@ services:
 # ── Networks ──────────────────────────────────────────────────────────────────
 networks:
   mailhsc_internal:
+    name: mailhsc_internal
     internal: true
     driver: bridge
   mailhsc_external:
+    name: mailhsc_external
     driver: bridge
 
 # ── Volumes ───────────────────────────────────────────────────────────────────
