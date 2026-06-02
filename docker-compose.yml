@@ -9,6 +9,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VERSION: "1.2.1"
     image: mailhsc-app:latest
     container_name: mailhsc-app
     restart: unless-stopped
@@ -72,6 +74,14 @@ services:
       traefik.http.routers.mailhsc-api.tls.certresolver: "${ACME_RESOLVER:-}"
       traefik.http.routers.mailhsc-api.priority: "10"
       traefik.http.routers.mailhsc-api.middlewares: "mailhsc-security-headers@docker,mailhsc-body-limit@docker,mailhsc-rate-limit@docker,mailhsc-compress@docker"
+
+      # ── Router: /api/version — rate limited ─────────────────────────────────
+      traefik.http.routers.mailhsc-version.rule: "Host(`${DOMAIN:-localhost}`) && Path(`/api/version`)"
+      traefik.http.routers.mailhsc-version.entrypoints: "websecure"
+      traefik.http.routers.mailhsc-version.tls: "true"
+      traefik.http.routers.mailhsc-version.tls.certresolver: "${ACME_RESOLVER:-}"
+      traefik.http.routers.mailhsc-version.priority: "10"
+      traefik.http.routers.mailhsc-version.middlewares: "mailhsc-security-headers@docker,mailhsc-rate-limit@docker,mailhsc-compress@docker"
 
       # ── Router: /api/health — blocked from public internet ──────────────────
       traefik.http.routers.mailhsc-health.rule: "Host(`${DOMAIN:-localhost}`) && Path(`/api/health`)"
