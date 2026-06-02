@@ -50,11 +50,19 @@ MODE=${MODE:-standalone}
 
 if [ "$MODE" = "full" ]; then
     echo "  ▶  Starting MailHSC (full mode — Traefik + HTTPS)..."
+    # Clean up legacy misnamed networks if they exist
+    docker network rm mailhsc_mailhsc_internal 2>/dev/null || true
+    docker network rm mailhsc_mailhsc_external 2>/dev/null || true
+    docker network rm mailhsc_mailhsc_standalone 2>/dev/null || true
     $DC -f docker-compose.yml up -d
 elif [ "$MODE" = "standalone" ]; then
     PORT=$(grep "^STANDALONE_PORT=" .env | cut -d= -f2 | tr -d '[:space:]')
     PORT=${PORT:-8080}
     echo "  ▶  Starting MailHSC (standalone mode — http://localhost:${PORT})..."
+    # Clean up legacy misnamed networks if they exist
+    docker network rm mailhsc_mailhsc_standalone 2>/dev/null || true
+    docker network rm mailhsc_mailhsc_internal 2>/dev/null || true
+    docker network rm mailhsc_mailhsc_external 2>/dev/null || true
     $DC -f docker-compose.standalone.yml up -d
 else
     echo ""

@@ -14,7 +14,9 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -trimpath -ldflags="-s -w" -o /mailhsc .
+# VERSION build arg — pass with: docker compose build --build-arg VERSION=1.2.1
+ARG VERSION=dev
+RUN go build -trimpath -ldflags="-s -w -X main.Version=${VERSION}" -o /mailhsc .
 
 # ─── Final stage ──────────────────────────────────────────────────────────────
 # Use distroless: no shell, no package manager, minimal CVE surface
