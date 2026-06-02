@@ -4,13 +4,17 @@ All notable changes to MailHSC are documented in this file.
 
 ## [1.2.1] - 2026-05-28
 
-### Fixed
-- `auth.np` guarded against `undefined` to prevent crash on cached pre-1.2.0 responses
-- `resp.Body` now explicitly closed in the health probe before `os.Exit`
-- Removed all remaining references to the former project name (MailLens) in `.env.example` and `LICENSE`
+### Security
+- `/api/version` restricted to `GET` requests only (was accepting all HTTP methods)
+- `/api/version` now behind a rate-limited Traefik router (10 req/s per IP)
 
-### Documentation
+### Fixed
+- `auth.np` guarded against `undefined` — prevents crash on cached pre-1.2.0 responses
+- `resp.Body` explicitly closed in health probe before `os.Exit`
 - `sniStrict` production recommendation documented in `.env.example`
+
+### Removed
+- All remaining references to former project name (MailLens) in `.env.example` and `LICENSE`
 - `LICENSE` copyright updated to MailHSC Contributors
 
 ---
