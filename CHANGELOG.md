@@ -5,6 +5,7 @@ All notable changes to MailHSC are documented in this file.
 ## [1.2.1] - 2026-05-28
 
 ### Added
+- `make update` command — stops, rebuilds without cache, and restarts in one step
 - Application version displayed in the footer, served via `/api/version` endpoint (injected at build time via `-ldflags`)
 
 ### Security
