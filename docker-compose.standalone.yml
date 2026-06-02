@@ -8,6 +8,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VERSION: "1.2.1"
     image: mailhsc-app:latest
     container_name: mailhsc-app
     restart: unless-stopped
