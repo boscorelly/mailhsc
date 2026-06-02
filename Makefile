@@ -1,4 +1,4 @@
-.PHONY: up down logs build
+.PHONY: up down logs build update
 
 DC := $(shell docker compose version > /dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
@@ -14,3 +14,8 @@ logs:
 
 build:
 	$(DC) build
+
+update:
+	$(DC) down
+	$(DC) build --no-cache
+	@sh start.sh
