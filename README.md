@@ -44,7 +44,15 @@ make up
 | `standalone` *(default)* | http://localhost:8080 | None | Local dev, behind existing proxy |
 | `full` | https://yourdomain.com | Let's Encrypt auto | Production |
 
-> Always use `make up` — never `docker compose up -d` directly.
+| Command | Description |
+|---|---|
+| `make up` | Start (creates `.env` if missing) |
+| `make down` | Stop all containers |
+| `make update` | Stop, rebuild without cache, restart |
+| `make logs` | Follow logs |
+| `make build` | Build image only |
+
+> Always use `make up` / `make update` — never `docker compose up -d` directly.
 
 ---
 
