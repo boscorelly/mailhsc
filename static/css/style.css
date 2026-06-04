@@ -510,6 +510,65 @@ textarea::placeholder { color: var(--muted); }
 }
 .headers-fade-btn:hover { color: var(--accent); background: linear-gradient(to bottom, transparent, var(--bg3)); }
 
+/* ─── DomainGuardian panels ─── */
+.dg-wrapper {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 1.2rem;
+}
+.dg-section-header {
+  padding: .7rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.dg-panels {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+}
+.dg-panel {
+  background: var(--bg2); padding: 1.2rem;
+  display: flex; flex-direction: column; gap: .6rem;
+  animation: fadeUp .35s ease both;
+  border-right: 1px solid var(--border);
+}
+.dg-panel:last-child { border-right: none; }
+.dg-panel-header {
+  font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted);
+}
+.dg-domain {
+  font-family: var(--font-mono); font-size: .88rem;
+  color: var(--accent); font-weight: 600;
+  word-break: break-all;
+}
+.dg-score-wrap {
+  display: flex; align-items: baseline; gap: .3rem; margin-bottom: .4rem;
+}
+.dg-score {
+  font-family: var(--font-mono); font-size: 2rem; font-weight: 700; line-height: 1;
+}
+.dg-score-label {
+  font-family: var(--font-mono); font-size: .75rem; color: var(--muted);
+}
+.dg-grade {
+  font-family: var(--font-mono); font-size: 1.2rem; font-weight: 700;
+  margin-left: .5rem; padding: .1rem .5rem; border-radius: 6px;
+}
+.dg-grade.A { color: var(--success); background: rgba(52,211,153,.12); }
+.dg-grade.B { color: var(--accent2); background: rgba(34,211,238,.12); }
+.dg-grade.C { color: var(--warn); background: rgba(251,191,36,.12); }
+.dg-grade.D { color: var(--warn); background: rgba(251,191,36,.08); }
+.dg-grade.F { color: var(--danger); background: rgba(248,113,113,.12); }
+.dg-link {
+  font-size: .75rem; color: var(--accent); text-decoration: none;
+  font-family: var(--font-mono);
+}
+.dg-link:hover { text-decoration: underline; }
+.dg-error { font-size: .78rem; color: var(--muted); }
+.dg-panel .spinner { width: 20px; height: 20px; }
+
+@media (max-width: 640px) {
+  .dg-panels { grid-template-columns: 1fr; }
+}
+
 /* ─── Theme toggle ─── */
 .theme-toggle {
   display: flex; align-items: center; gap: 2px;
