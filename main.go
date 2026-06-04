@@ -56,6 +56,7 @@ func main() {
 
 	// API endpoints
 	mux.HandleFunc("/api/analyze", withSecurity(handleAnalyze))
+	mux.HandleFunc("/api/dg", handleDomainGuardian)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/version", handleVersion)
 
@@ -200,6 +201,48 @@ func noListingFileServer(root http.FileSystem) http.Handler {
 		}
 		fs.ServeHTTP(w, r)
 	})
+}
+
+// handleDomainGuardian proxies a domain check to the internal scraper service.
+func handleDomainGuardian(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		jsonError(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	domain := r.URL.Query().Get("domain")
+	if domain == "" {
+		jsonError(w, "missing domain parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Basic domain validation — alphanumeric, dots, hyphens only
+	for _, ch := range domain {
+		if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+			(ch >= '0' && ch <= '9') || ch == '.' || ch == '-') {
+			jsonError(w, "invalid domain", http.StatusBadRequest)
+			return
+		}
+	}
+	if len(domain) > 253 {
+		jsonError(w, "domain too long", http.StatusBadRequest)
+		return
+	}
+
+	scraperURL := "http://scraper:3000/check?domain=" + domain
+	client := &http.Client{Timeout: 90 * time.Second}
+	resp, err := client.Get(scraperURL)
+	if err != nil {
+		log.Printf("scraper error for %s: %v", domain, err)
+		jsonError(w, "scraper unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	defer resp.Body.Close()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	// Limit response size — scraper should only return a small JSON object
+	io.Copy(w, io.LimitReader(resp.Body, 4096))
 }
 
 func handleVersion(w http.ResponseWriter, r *http.Request) {
