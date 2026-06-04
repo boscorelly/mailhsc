@@ -51,6 +51,7 @@ make up
 | `make update` | Stop, rebuild without cache, restart |
 | `make logs` | Follow logs |
 | `make build` | Build image only |
+| `make clean` | Remove dangling containers and untagged images |
 
 > Always use `make up` / `make update` — never `docker compose up -d` directly.
 
