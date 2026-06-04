@@ -2,7 +2,7 @@
 
 All notable changes to MailHSC are documented in this file.
 
-## [1.3.0] - 2026-06-02
+## [1.3.0] - 2026-06-04
 
 ### Added
 - **DomainGuardian integration** — after each analysis, the sender (From) and recipient (To) domains are automatically checked against DomainGuardian. Results displayed in two side-by-side panels with score, grade, and a direct link to the full DomainGuardian report
@@ -10,6 +10,10 @@ All notable changes to MailHSC are documented in this file.
 - New `/api/dg?domain=xxx` endpoint in Go — validates the domain and proxies to the scraper service
 - Panels show a loading spinner while the check is in progress, then reveal score + grade + "Secure your domain with DomainGuardian →" link opening in a new tab
 - Section header "Domain Security" above the two columns (translated in EN, FR, DE, ES)
+- `make clean` — removes dangling containers and untagged images left by builds (tagged images are never affected)
+
+### Fixed
+- BuildKit enabled (`DOCKER_BUILDKIT=1`) — no more orphan intermediate containers (e.g. `hardcore_ellis`) left after builds
 
 ### Security
 - `/api/dg` behind a rate-limited Traefik router (10 req/s per IP)
