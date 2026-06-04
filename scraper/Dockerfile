@@ -1,6 +1,9 @@
 # Use official Playwright image — includes all system deps + correct Chromium for the platform
 FROM mcr.microsoft.com/playwright:v1.44.0-jammy
 
+# Update npm to latest major version
+RUN npm install -g npm@latest
+
 WORKDIR /app
 
 COPY package.json ./
