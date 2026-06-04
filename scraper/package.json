@@ -1,0 +1,9 @@
+{
+  "name": "mailhsc-scraper",
+  "version": "1.0.0",
+  "description": "DomainGuardian scraper service for MailHSC",
+  "main": "server.js",
+  "dependencies": {
+    "playwright": "^1.44.0"
+  }
+}
