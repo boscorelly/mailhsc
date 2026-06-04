@@ -31,6 +31,7 @@ services:
 
     networks:
       - mailhsc_internal
+      - mailhsc_external
 
     depends_on:
       - scraper
