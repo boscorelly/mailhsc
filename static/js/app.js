@@ -124,6 +124,18 @@ document.getElementById('analyzeFileBtn').addEventListener('click', function() {
   analyzeFile(selectedFile);
 });
 document.getElementById('newAnalysisBtn').addEventListener('click', function() {
+  // Reset DG panels
+  var panels = document.getElementById('dgPanels');
+  panels.style.display = 'none';
+  ['dgFrom','dgTo'].forEach(function(id) {
+    var el = document.getElementById(id); if(el) el.style.display = '';
+  });
+  ['dgFromResult','dgToResult','dgFromError','dgToError'].forEach(function(id) {
+    var el = document.getElementById(id); if(el) el.classList.add('hidden');
+  });
+  ['dgFromLoading','dgToLoading'].forEach(function(id) {
+    var el = document.getElementById(id); if(el) el.classList.remove('hidden');
+  });
   showSection('input');
   clearFile();
 });
@@ -187,6 +199,7 @@ function renderResults(d) {
   // textContent — safe
   document.getElementById('headersCount').textContent = allHeaders.length;
   document.getElementById('toggleHeaders').textContent = T.showAll;
+  renderDomainGuardian(d.summary);
   showSection('results');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -438,6 +451,94 @@ document.getElementById('toggleHeaders').addEventListener('click', function() {
   renderHeaders(allHeaders, showAllHeaders);
   document.getElementById('toggleHeaders').textContent = showAllHeaders ? T.showLess : T.showAll;
 });
+
+// ─── DomainGuardian checks ───────────────────────────────────────────────────
+function domainFromEmail(email) {
+  if (!email) return null;
+  var parts = email.split('@');
+  if (parts.length < 2) return null;
+  var domain = parts[parts.length - 1].trim().replace(/[>)]+$/, '').trim();
+  return domain || null;
+}
+
+function gradeClass(grade) {
+  if (!grade) return '';
+  var g = grade.charAt(0).toUpperCase();
+  return g;
+}
+
+function dgColorFromGrade(grade) {
+  if (!grade) return 'var(--muted)';
+  var g = grade.charAt(0).toUpperCase();
+  if (g === 'A') return 'var(--success)';
+  if (g === 'B') return 'var(--accent2)';
+  if (g === 'C') return 'var(--warn)';
+  if (g === 'D') return 'var(--warn)';
+  return 'var(--danger)';
+}
+
+function runDGCheck(domain, scoreEl, gradeEl, linkEl, loadingEl, resultEl, errorEl) {
+  loadingEl.classList.remove('hidden');
+  resultEl.classList.add('hidden');
+  errorEl.classList.add('hidden');
+
+  fetch('/api/dg?domain=' + encodeURIComponent(domain))
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      loadingEl.classList.add('hidden');
+      if (!d.score && !d.grade) throw new Error('no data');
+      scoreEl.textContent = d.score || '?';
+      var color = dgColorFromGrade(d.grade);
+      scoreEl.style.color = color;
+      gradeEl.textContent = d.grade || '?';
+      gradeEl.className = 'dg-grade ' + gradeClass(d.grade);
+      linkEl.href = 'https://domainguardian.nebiatek.com/results?domain=' + encodeURIComponent(domain);
+      linkEl.textContent = T.dgLink;
+      resultEl.classList.remove('hidden');
+    })
+    .catch(function() {
+      loadingEl.classList.add('hidden');
+      errorEl.classList.remove('hidden');
+    });
+}
+
+function renderDomainGuardian(summary) {
+  var fromDomain = domainFromEmail(summary.from);
+  var toDomain   = domainFromEmail(summary.to);
+
+  if (!fromDomain && !toDomain) return;
+
+  var panels = document.getElementById('dgPanels');
+  panels.style.display = 'block';
+
+  if (fromDomain) {
+    document.getElementById('dgFromDomain').textContent = fromDomain;
+    runDGCheck(fromDomain,
+      document.getElementById('dgFromScore'),
+      document.getElementById('dgFromGrade'),
+      document.getElementById('dgFromLink'),
+      document.getElementById('dgFromLoading'),
+      document.getElementById('dgFromResult'),
+      document.getElementById('dgFromError')
+    );
+  } else {
+    document.getElementById('dgFrom').style.display = 'none';
+  }
+
+  if (toDomain) {
+    document.getElementById('dgToDomain').textContent = toDomain;
+    runDGCheck(toDomain,
+      document.getElementById('dgToScore'),
+      document.getElementById('dgToGrade'),
+      document.getElementById('dgToLink'),
+      document.getElementById('dgToLoading'),
+      document.getElementById('dgToResult'),
+      document.getElementById('dgToError')
+    );
+  } else {
+    document.getElementById('dgTo').style.display = 'none';
+  }
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function translateIssue(code, params) {
