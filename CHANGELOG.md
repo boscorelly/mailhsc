@@ -2,6 +2,23 @@
 
 All notable changes to MailHSC are documented in this file.
 
+## [1.3.0] - 2026-06-02
+
+### Added
+- **DomainGuardian integration** — after each analysis, the sender (From) and recipient (To) domains are automatically checked against DomainGuardian. Results displayed in two side-by-side panels with score, grade, and a direct link to the full DomainGuardian report
+- New `scraper/` service — Node.js + Playwright microservice that loads DomainGuardian and extracts the score and grade via headless Chromium
+- New `/api/dg?domain=xxx` endpoint in Go — validates the domain and proxies to the scraper service
+- Panels show a loading spinner while the check is in progress, then reveal score + grade + "Secure your domain with DomainGuardian →" link opening in a new tab
+- Section header "Domain Security" above the two columns (translated in EN, FR, DE, ES)
+
+### Security
+- `/api/dg` behind a rate-limited Traefik router (10 req/s per IP)
+- Scraper error messages logged server-side only — generic response to client
+- Scraper response body limited to 4 KB via `io.LimitReader`
+- Scraper service on `mailhsc_external` network (needs internet) and `mailhsc_internal` (reachable by app only)
+
+---
+
 ## [1.2.1] - 2026-05-28
 
 ### Added
@@ -13,6 +30,7 @@ All notable changes to MailHSC are documented in this file.
 - `/api/version` now behind a rate-limited Traefik router (10 req/s per IP)
 
 ### Fixed
+- Docker network names forced with explicit `name:` to prevent double-prefix (`mailhsc_mailhsc_*`)
 - `auth.np` guarded against `undefined` — prevents crash on cached pre-1.2.0 responses
 - `resp.Body` explicitly closed in health probe before `os.Exit`
 - `sniStrict` production recommendation documented in `.env.example`
