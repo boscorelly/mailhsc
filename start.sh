@@ -3,6 +3,10 @@ set -e
 
 cd "$(dirname "$0")"
 
+# Enable BuildKit — prevents intermediate containers with random names
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
 # Detect docker compose command (plugin vs standalone)
 if docker compose version > /dev/null 2>&1; then
     DC="docker compose"
