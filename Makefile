@@ -31,8 +31,9 @@ update:
 	$(DC) -f $(COMPOSE_FILE) build --no-cache
 	@sh start.sh
 
-# Remove dangling images and stopped containers left by builds
+# Remove MailHSC containers, dangling images and build cache
 clean:
-	docker container prune -f
+	$(DC) -f $(COMPOSE_FILE) rm -f 2>/dev/null || true
 	docker image prune -f
-	@echo "Cleaned up dangling containers and images."
+	docker builder prune -f
+	@echo "Cleaned up MailHSC containers, dangling images and build cache."
