@@ -38,6 +38,64 @@ fetch('/api/version')
   })
   .catch(function() {});
 
+// ─── Floating nav ────────────────────────────────────────────────────────────
+var floatNav = document.getElementById('floatNav');
+
+function updateActiveNav() {
+  var sections = ['sectionScore','sectionDG','sectionSummary','sectionHops','sectionAuth','sectionHeaders'];
+  var best = null, bestTop = Infinity;
+  sections.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el || el.style.display === 'none') return;
+    var top = Math.abs(el.getBoundingClientRect().top);
+    if (top < bestTop) { bestTop = top; best = id; }
+  });
+  document.querySelectorAll('.float-nav-item').forEach(function(a) {
+    var href = a.getAttribute('href').replace('#','');
+    a.classList.toggle('active', href === best);
+  });
+}
+
+window.addEventListener('scroll', updateActiveNav, { passive: true });
+
+function showFloatNav(show) {
+  floatNav.classList.toggle('hidden', !show);
+}
+
+function showDGNavItem(show) {
+  var el = document.querySelector('.float-nav-dg');
+  if (el) el.classList.toggle('hidden', !show);
+}
+
+// ─── Input validation ─────────────────────────────────────────────────────────
+// RFC 5322: valid headers must have at least one "Field-Name: value" line
+// and optionally a blank line separating headers from body.
+function looksLikeEmailHeaders(text) {
+  var lines = text.split(/
+?
+/);
+  var headerLineCount = 0;
+  // A valid header line starts with a printable ASCII token followed by ':'
+  var headerRe = /^[!-9;-~]+\s*:/;
+  // Folded header continuation: starts with whitespace
+  var foldedRe = /^[ 	]/;
+  for (var i = 0; i < Math.min(lines.length, 50); i++) {
+    var line = lines[i];
+    if (line === '') break; // end of header section
+    if (headerRe.test(line)) headerLineCount++;
+    else if (foldedRe.test(line) && headerLineCount > 0) continue;
+    else if (i > 0) return false; // non-header line in header section
+  }
+  return headerLineCount >= 1;
+}
+
+// ─── File validation (RFC 5322 structure check) ───────────────────────────────
+function validateEMLContent(text) {
+  // Must have at least one valid header followed by (optional) blank line
+  if (!looksLikeEmailHeaders(text)) return false;
+  return true;
+}
+
 // ─── Tab switching ───────────────────────────────────────────────────────────
 // Safe: data-tab values come from static HTML, not user input.
 // Whitelist enforced anyway to prevent any future dynamic injection.
@@ -117,15 +175,29 @@ document.getElementById('clearBtn').addEventListener('click', function() {
 document.getElementById('analyzeBtn').addEventListener('click', function() {
   var raw = document.getElementById('headersInput').value.trim();
   if (!raw) return;
+  if (!looksLikeEmailHeaders(raw)) {
+    showError(T.invalidHeaders);
+    return;
+  }
   analyzeJSON(raw);
 });
 document.getElementById('analyzeFileBtn').addEventListener('click', function() {
   if (!selectedFile) return;
-  analyzeFile(selectedFile);
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var text = e.target.result;
+    if (!validateEMLContent(text)) {
+      showError(T.invalidEML);
+      return;
+    }
+    analyzeFile(selectedFile);
+  };
+  reader.onerror = function() { showError(T.invalidEML); };
+  reader.readAsText(selectedFile);
 });
 document.getElementById('newAnalysisBtn').addEventListener('click', function() {
   // Reset DG panels
-  var panels = document.getElementById('dgPanels');
+  var panels = document.getElementById('sectionDG');
   panels.style.display = 'none';
   ['dgFrom','dgTo'].forEach(function(id) {
     var el = document.getElementById(id); if(el) el.style.display = '';
@@ -136,6 +208,7 @@ document.getElementById('newAnalysisBtn').addEventListener('click', function() {
   ['dgFromLoading','dgToLoading'].forEach(function(id) {
     var el = document.getElementById(id); if(el) el.classList.remove('hidden');
   });
+  showFloatNav(false);
   showSection('input');
   clearFile();
 });
@@ -200,7 +273,10 @@ function renderResults(d) {
   document.getElementById('headersCount').textContent = allHeaders.length;
   document.getElementById('toggleHeaders').textContent = T.showAll;
   renderDomainGuardian(d.summary);
+  showFloatNav(true);
+  showDGNavItem(!!(domainFromEmail(d.summary.from) || domainFromEmail(d.summary.to)));
   showSection('results');
+  setTimeout(updateActiveNav, 100);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -508,7 +584,7 @@ function renderDomainGuardian(summary) {
 
   if (!fromDomain && !toDomain) return;
 
-  var panels = document.getElementById('dgPanels');
+  var panels = document.getElementById('sectionDG');
   panels.style.display = 'block';
 
   if (fromDomain) {
