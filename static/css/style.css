@@ -569,6 +569,27 @@ textarea::placeholder { color: var(--muted); }
   .dg-panels { grid-template-columns: 1fr; }
 }
 
+/* ─── Floating nav ─── */
+.float-nav {
+  position: fixed; right: 1.2rem; top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: .3rem;
+  z-index: 200;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: .5rem .4rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,.25);
+}
+.float-nav-item {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted);
+  text-decoration: none; padding: .3rem .6rem;
+  border-radius: 6px; white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+.float-nav-item:hover { background: var(--bg3); color: var(--text); }
+.float-nav-item.active { color: var(--accent); background: var(--bg3); }
+@media (max-width: 900px) { .float-nav { display: none !important; } }
+
 /* ─── Theme toggle ─── */
 .theme-toggle {
   display: flex; align-items: center; gap: 2px;
