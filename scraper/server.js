@@ -24,15 +24,17 @@ async function checkDomain(domain) {
   page.on('console', () => {});
 
   try {
+    // Use 'load' not 'networkidle' — DomainGuardian makes continuous DNS/DoH
+    // requests that prevent the page from ever reaching network idle state
     await page.goto(
       `https://domainguardian.nebiatek.com/results?domain=${encodeURIComponent(domain)}`,
-      { waitUntil: 'networkidle', timeout: 60000 }
+      { waitUntil: 'load', timeout: 30000 }
     );
-    // Wait until the score + grade appear in the page (DNS lookups may take time)
+    // Wait until the score + grade appear (SPA computes them asynchronously)
     await page.waitForFunction(() => {
       const text = document.body.innerText;
       return /\d{1,3}[\r\n]+Grade:\s*[A-F]/.test(text);
-    }, { timeout: 45000 });
+    }, { timeout: 60000 });
 
     const result = await page.evaluate(() => {
       const text  = document.body.innerText;
