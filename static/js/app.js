@@ -185,6 +185,10 @@ document.getElementById('analyzeFileBtn').addEventListener('click', function() {
   reader.onerror = function() { showError(T.invalidEML); };
   reader.readAsText(selectedFile);
 });
+document.getElementById('errorBackBtn').addEventListener('click', function() {
+  showSection('input');
+});
+
 document.getElementById('newAnalysisBtn').addEventListener('click', function() {
   // Reset DG panels
   var panels = document.getElementById('sectionDG');
@@ -199,6 +203,7 @@ document.getElementById('newAnalysisBtn').addEventListener('click', function() {
     var el = document.getElementById(id); if(el) el.classList.remove('hidden');
   });
   showFloatNav(false);
+  document.getElementById('headersInput').value = '';
   showSection('input');
   clearFile();
 });
@@ -241,10 +246,8 @@ function showSection(name) {
   document.getElementById('results').classList.toggle('hidden', name !== 'results');
 }
 function showError(msg) {
-  // textContent — safe, no XSS risk
   document.getElementById('errorMsg').textContent = msg;
   showSection('error');
-  setTimeout(function() { showSection('input'); }, 4000);
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
