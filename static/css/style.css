@@ -597,7 +597,7 @@ textarea::placeholder { color: var(--muted); }
 /* ─── Sticky section nav bar ─── */
 .float-nav {
   position: sticky; top: 0; z-index: 200;
-  display: flex; align-items: center; gap: .2rem;
+  display: flex; align-items: center; justify-content: center; gap: .2rem;
   background: color-mix(in srgb, var(--bg2) 90%, transparent);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(10px);
