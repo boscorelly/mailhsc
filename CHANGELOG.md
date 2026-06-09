@@ -2,7 +2,7 @@
 
 All notable changes to MailHSC are documented in this file.
 
-## [1.3.0] - 2026-06-04
+## [1.3.0] - 2026-06-09
 
 ### Added
 - **DomainGuardian integration** — after each analysis, the sender (From) and recipient (To) domains are automatically checked against DomainGuardian. Results displayed in two side-by-side panels with score, grade, and a direct link to the full DomainGuardian report
@@ -11,8 +11,15 @@ All notable changes to MailHSC are documented in this file.
 - Panels show a loading spinner while the check is in progress, then reveal score + grade + "Secure your domain with DomainGuardian →" link opening in a new tab
 - Section header "Domain Security" above the two columns (translated in EN, FR, DE, ES)
 - `make clean` — removes dangling containers and untagged images left by builds (tagged images are never affected)
+- Floating navigation menu on results view — sticky horizontal bar with links to Score, Domain Security, Summary, Routing, Authentication, Headers; active section highlighted on scroll
+- Routing path: intermediate hops collapsed by default — click to expand (only first and last shown)
 
 ### Fixed
+- Input validation: pasted text checked against RFC 5322 header structure before submission — invalid content shows an error with a ← Back button
+- File validation: uploaded files verified for RFC 5322 compliance client-side before sending to server
+- `← Back` button on error screen returns to input and clears the textarea/file
+- "New Analysis" button now clears the textarea and selected file
+- `navAuth` label in French corrected to "Authentification"
 - BuildKit enabled (`DOCKER_BUILDKIT=1`) — no more orphan intermediate containers (e.g. `hardcore_ellis`) left after builds
 
 ### Security
