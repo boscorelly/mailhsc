@@ -95,6 +95,14 @@
       <h2 data-i18n="analysisReport"></h2>
       <button class="btn-ghost" id="newAnalysisBtn" data-i18n="newAnalysis"></button>
     </div>
+    <nav class="float-nav hidden" id="floatNav" aria-label="Sections">
+      <a href="#sectionScore"   class="float-nav-item" data-i18n="navScore"></a>
+      <a href="#sectionDG"      class="float-nav-item float-nav-dg hidden" data-i18n="navDomains"></a>
+      <a href="#sectionSummary" class="float-nav-item" data-i18n="navSummary"></a>
+      <a href="#sectionHops"    class="float-nav-item" data-i18n="navHops"></a>
+      <a href="#sectionAuth"    class="float-nav-item" data-i18n="navAuth"></a>
+      <a href="#sectionHeaders" class="float-nav-item" data-i18n="navHeaders"></a>
+    </nav>
 
     <div class="score-card" id="sectionScore">
       <div class="score-ring">
@@ -194,16 +202,6 @@
     </div>
   </section>
 </main>
-
-  <!-- Floating nav — results view only -->
-  <nav class="float-nav hidden" id="floatNav" aria-label="Sections">
-    <a href="#sectionScore"    class="float-nav-item" data-i18n="navScore"></a>
-    <a href="#sectionDG"       class="float-nav-item float-nav-dg hidden" data-i18n="navDomains"></a>
-    <a href="#sectionSummary"  class="float-nav-item" data-i18n="navSummary"></a>
-    <a href="#sectionHops"     class="float-nav-item" data-i18n="navHops"></a>
-    <a href="#sectionAuth"     class="float-nav-item" data-i18n="navAuth"></a>
-    <a href="#sectionHeaders"  class="float-nav-item" data-i18n="navHeaders"></a>
-  </nav>
 
 <footer>
   <span>MailHSC · Header Security Checker &nbsp;<span id="app-version" style="opacity:.5"></span></span>
