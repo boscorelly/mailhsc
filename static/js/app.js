@@ -68,32 +68,22 @@ function showDGNavItem(show) {
 }
 
 // ─── Input validation ─────────────────────────────────────────────────────────
-// RFC 5322: valid headers must have at least one "Field-Name: value" line
-// and optionally a blank line separating headers from body.
 function looksLikeEmailHeaders(text) {
-  var lines = text.split(/
-?
-/);
-  var headerLineCount = 0;
-  // A valid header line starts with a printable ASCII token followed by ':'
-  var headerRe = /^[!-9;-~]+\s*:/;
-  // Folded header continuation: starts with whitespace
-  var foldedRe = /^[ 	]/;
+  var lines = text.split('\n');
+  var count = 0;
   for (var i = 0; i < Math.min(lines.length, 50); i++) {
-    var line = lines[i];
-    if (line === '') break; // end of header section
-    if (headerRe.test(line)) headerLineCount++;
-    else if (foldedRe.test(line) && headerLineCount > 0) continue;
-    else if (i > 0) return false; // non-header line in header section
+    var line = lines[i].replace('\r', '');
+    if (line === '') break;
+    if (/^[A-Za-z0-9!#$%&'*+\-.^_`|~]+\s*:/.test(line)) { count++; }
+    else if (/^[ \t]/.test(line) && count > 0) { continue; }
+    else if (i > 0) { return false; }
   }
-  return headerLineCount >= 1;
+  return count >= 1;
 }
 
 // ─── File validation (RFC 5322 structure check) ───────────────────────────────
 function validateEMLContent(text) {
-  // Must have at least one valid header followed by (optional) blank line
-  if (!looksLikeEmailHeaders(text)) return false;
-  return true;
+  return looksLikeEmailHeaders(text);
 }
 
 // ─── Tab switching ───────────────────────────────────────────────────────────
