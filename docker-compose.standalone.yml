@@ -75,8 +75,8 @@ services:
       - ALL
 
     networks:
+      - mailhsc_external   # needs internet — must be first for default route
       - mailhsc_internal   # reachable by app
-      - mailhsc_external   # needs internet to reach domainguardian.nebiatek.com
 
     expose:
       - "3000"
