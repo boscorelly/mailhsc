@@ -186,6 +186,8 @@ document.getElementById('analyzeFileBtn').addEventListener('click', function() {
   reader.readAsText(selectedFile);
 });
 document.getElementById('errorBackBtn').addEventListener('click', function() {
+  document.getElementById('headersInput').value = '';
+  clearFile();
   showSection('input');
 });
 
