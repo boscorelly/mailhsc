@@ -569,6 +569,12 @@ textarea::placeholder { color: var(--muted); }
   .dg-panels { grid-template-columns: 1fr; }
 }
 
+/* ─── Section scroll offset (for sticky nav) ─── */
+#sectionScore, #sectionDG, #sectionSummary,
+#sectionHops, #sectionAuth, #sectionHeaders {
+  scroll-margin-top: 3rem;
+}
+
 /* ─── Sticky section nav bar ─── */
 .float-nav {
   position: sticky; top: 0; z-index: 200;
