@@ -358,7 +358,6 @@ function renderSummary(s) {
 // ── Hops ─────────────────────────────────────────────────────────────────────
 function renderHops(hops) {
   var el = document.getElementById('hopsTimeline');
-  // textContent — safe
   document.getElementById('hopsCount').textContent = (hops ? hops.length : 0) + ' ' + T.hops;
 
   el.innerHTML = '';
@@ -370,8 +369,29 @@ function renderHops(hops) {
     return;
   }
 
+  // For 3+ hops: show first + last, collapse middle behind an expand toggle
+  var showAll = hops.length <= 2;
+  var hiddenCount = hops.length - 2;
+
   hops.forEach(function(hop, i) {
     var isOrigin = i === 0, isLast = i === hops.length - 1;
+    var isMiddle = !isOrigin && !isLast;
+
+    // Insert expand toggle before first middle hop
+    if (isMiddle && i === 1 && !showAll) {
+      var toggle = document.createElement('div');
+      toggle.className = 'hop-expand';
+      toggle.setAttribute('data-hidden', hiddenCount);
+      var toggleText = document.createElement('span');
+      toggleText.textContent = '+ ' + hiddenCount + ' ' + T.hopsHidden;
+      toggle.appendChild(toggleText);
+      toggle.addEventListener('click', function() {
+        // Show all hidden hops and remove toggle
+        el.querySelectorAll('.hop-item.hidden').forEach(function(h) { h.classList.remove('hidden'); });
+        toggle.remove();
+      });
+      el.appendChild(toggle);
+    }
 
     var wrapper    = document.createElement('div'); wrapper.className = 'hop-item';
     var connector  = document.createElement('div'); connector.className = 'hop-connector';
@@ -417,6 +437,7 @@ function renderHops(hops) {
       body.appendChild(ts);
     }
 
+    if (isMiddle && !showAll) wrapper.classList.add('hidden');
     wrapper.appendChild(connector);
     wrapper.appendChild(body);
     el.appendChild(wrapper);
