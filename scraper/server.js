@@ -30,10 +30,10 @@ async function checkDomain(domain) {
       `https://domainguardian.nebiatek.com/results?domain=${encodeURIComponent(domain)}`,
       { waitUntil: 'load', timeout: 30000 }
     );
-    // Wait until the score + grade appear (SPA computes them asynchronously)
+    // Wait until "Scanned on" appears — this text is only present after all
+    // DNS lookups are complete and the final score has been computed
     await page.waitForFunction(() => {
-      const text = document.body.innerText;
-      return /\d{1,3}[\r\n]+Grade:\s*[A-F]/.test(text);
+      return document.body.innerText.includes('Scanned on');
     }, { timeout: 60000 });
 
     const result = await page.evaluate(() => {
