@@ -111,7 +111,7 @@ services:
       traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.X-XSS-Protection: "1; mode=block"
       traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Referrer-Policy: "no-referrer"
       traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Permissions-Policy: "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), usb=(), web-share=(), xr-spatial-tracking=()"
-      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Content-Security-Policy: "default-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Content-Security-Policy: "default-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
       traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Server: ""
       traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.X-Powered-By: ""
       traefik.http.middlewares.mailhsc-security-headers.headers.stsSeconds: "31536000"
