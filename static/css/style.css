@@ -572,7 +572,7 @@ textarea::placeholder { color: var(--muted); }
 /* ─── Section scroll offset (for sticky nav) ─── */
 #sectionScore, #sectionDG, #sectionSummary,
 #sectionHops, #sectionAuth, #sectionHeaders {
-  scroll-margin-top: 3rem;
+  scroll-margin-top: 5rem;
 }
 
 /* ─── Sticky section nav bar ─── */
