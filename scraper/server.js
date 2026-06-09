@@ -28,12 +28,14 @@ async function checkDomain(domain) {
       `https://domainguardian.nebiatek.com/results?domain=${encodeURIComponent(domain)}`,
       { waitUntil: 'networkidle', timeout: 60000 }
     );
-    await page.waitForTimeout(5000);
+    // Wait until the score + grade appear in the page (DNS lookups may take time)
+    await page.waitForFunction(() => {
+      const text = document.body.innerText;
+      return /\d{1,3}[\r\n]+Grade:\s*[A-F]/.test(text);
+    }, { timeout: 45000 });
 
     const result = await page.evaluate(() => {
       const text  = document.body.innerText;
-      // Match score (1-3 digits) followed by "Grade:" on the next line
-      // Use \s+ to handle \r\n, \n, or other whitespace between them
       const match = text.match(/(\d{1,3})[\r\n]+Grade:\s*([A-F][+-]?)/);
       return {
         score: match ? match[1] : null,
