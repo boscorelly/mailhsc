@@ -569,6 +569,25 @@ textarea::placeholder { color: var(--muted); }
   .dg-panels { grid-template-columns: 1fr; }
 }
 
+/* ─── Hop expand toggle ─── */
+.hop-item.hidden { display: none; }
+.hop-expand {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .5rem .8rem; margin: .2rem 0;
+  cursor: pointer; color: var(--accent);
+  font-size: .78rem; font-weight: 600;
+  border: 1px dashed var(--border2); border-radius: 8px;
+  transition: background .15s, border-color .15s;
+  margin-left: 1.6rem;
+}
+.hop-expand:hover { background: var(--bg3); border-color: var(--accent); }
+.hop-expand::before {
+  content: ''; display: inline-block;
+  width: 2px; height: 1.4rem;
+  background: var(--border2); margin-right: .2rem;
+  border-radius: 1px;
+}
+
 /* ─── Section scroll offset (for sticky nav) ─── */
 #sectionScore, #sectionDG, #sectionSummary,
 #sectionHops, #sectionAuth, #sectionHeaders {
