@@ -108,7 +108,7 @@ const TRANSLATIONS = {
     noIssues: 'Aucun problème de sécurité détecté',
     invalidHeaders: "Le texte collé ne ressemble pas à des en-têtes email. Veuillez coller des en-têtes bruts.",
     invalidEML: "Ce fichier ne semble pas être un email valide (RFC 5322). Veuillez uploader un fichier .eml.",
-    hopsHidden: 'hops intermédiaires masqués — cliquer pour développer',
+    hopsHidden: 'sauts intermédiaires masqués — cliquer pour développer',
     navScore: 'Score', navDomains: 'Domaines', navSummary: 'Résumé', navHops: 'Routage', navAuth: 'Authentification', navHeaders: 'En-têtes',
     dgSectionTitle: 'Sécurité des domaines',
     dgSender: 'Expéditeur',
