@@ -569,6 +569,15 @@ textarea::placeholder { color: var(--muted); }
   .dg-panels { grid-template-columns: 1fr; }
 }
 
+/* ─── Error box layout ─── */
+.error-content {
+  display: flex; align-items: center; gap: .6rem; flex: 1;
+}
+.error-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  flex-wrap: wrap;
+}
+
 /* ─── Hop expand toggle ─── */
 .hop-item.hidden { display: none; }
 .hop-expand {
