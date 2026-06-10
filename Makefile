@@ -40,6 +40,7 @@ update: _check_mode
 	$(DC) -f $(COMPOSE_FILE) down
 	$(DC) -f $(COMPOSE_FILE) build --no-cache
 	@sh start.sh
+	docker image prune -f
 
 # Remove MailHSC containers, dangling images and build cache
 clean: _check_mode
