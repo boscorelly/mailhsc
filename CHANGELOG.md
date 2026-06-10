@@ -13,6 +13,9 @@ All notable changes to MailHSC are documented in this file.
 - `make clean` — removes dangling containers and untagged images left by builds (tagged images are never affected)
 - Floating navigation menu on results view — sticky horizontal bar with links to Score, Domain Security, Summary, Routing, Authentication, Headers; active section highlighted on scroll
 - Routing path: intermediate hops collapsed by default — click to expand (only first and last shown)
+- Scraper: file-based result cache (1h TTL) — re-analyzing the same domain returns instantly without launching Chromium
+- Scraper: concurrency limited to 2 simultaneous Chromium pages (queue beyond)
+- Frontend: 75s timeout (`AbortController`) on DomainGuardian checks
 
 ### Fixed
 - Input validation: pasted text checked against RFC 5322 header structure before submission — invalid content shows an error with a ← Back button
@@ -21,9 +24,12 @@ All notable changes to MailHSC are documented in this file.
 - "New Analysis" button now clears the textarea and selected file
 - `navAuth` label in French corrected to "Authentification"
 - BuildKit enabled (`DOCKER_BUILDKIT=1`) — no more orphan intermediate containers (e.g. `hardcore_ellis`) left after builds
+- Scraper: `waitUntil: 'networkidle'` replaced by `'load'` — DomainGuardian's continuous DoH requests prevented networkidle from ever firing
+- Scraper: score read after stabilization polling — "Scanned on" appears while score is still 0, final value computed a few seconds later
+- `pin-images.sh` updated with the Playwright base image
 
 ### Security
-- `/api/dg` behind a rate-limited Traefik router (10 req/s per IP)
+- `/api/dg` rate-limited Go-side (10 req/min per IP, sliding window with periodic purge) — works in both full and standalone modes; Traefik-side limit removed to avoid double counting
 - Scraper error messages logged server-side only — generic response to client
 - Scraper response body limited to 4 KB via `io.LimitReader`
 - Scraper service on `mailhsc_external` network (needs internet) and `mailhsc_internal` (reachable by app only)
