@@ -519,6 +519,10 @@ textarea::placeholder { color: var(--muted); }
   padding: .7rem 1.2rem;
   border-bottom: 1px solid var(--border);
   background: var(--bg3);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.dg-refresh-all {
+  margin-left: auto;
 }
 .dg-panels {
   display: grid; grid-template-columns: 1fr 1fr; gap: 0;
