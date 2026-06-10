@@ -7,19 +7,6 @@ cd "$(dirname "$0")"
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-# Detect docker compose command (plugin vs standalone)
-if docker compose version > /dev/null 2>&1; then
-    DC="docker compose"
-elif docker-compose version > /dev/null 2>&1; then
-    DC="docker-compose"
-else
-    echo ""
-    echo "  ✖  ERROR: neither 'docker compose' nor 'docker-compose' found."
-    echo "     Please install Docker with the Compose plugin."
-    echo ""
-    exit 1
-fi
-
 if [ ! -f .env.example ]; then
     echo ""
     echo "  ✖  ERROR: .env.example not found."
@@ -33,9 +20,10 @@ if [ ! -f .env ]; then
     chmod 600 .env
     echo ""
     echo "  ✔  .env created from .env.example."
-    echo "     Default mode: standalone (http://localhost:8080)."
-    echo "     For production with HTTPS: set DEPLOY_MODE=full and configure DOMAIN."
+    echo "  ⚠  Review the configuration and set DEPLOY_MODE (standalone or full),"
+    echo "     then run this command again."
     echo ""
+    exit 1
 fi
 
 # Block if full mode with placeholder email and non-localhost domain
@@ -50,7 +38,28 @@ if grep -q "^DEPLOY_MODE=full" .env; then
 fi
 
 MODE=$(grep "^DEPLOY_MODE=" .env | cut -d= -f2 | tr -d '[:space:]')
-MODE=${MODE:-standalone}
+
+if [ -z "$MODE" ]; then
+    echo ""
+    echo "  ✖  ERROR: DEPLOY_MODE is not set in .env."
+    echo "     Set DEPLOY_MODE=standalone or DEPLOY_MODE=full."
+    echo ""
+    exit 1
+fi
+
+# Detect docker compose command (plugin vs standalone)
+if docker compose version > /dev/null 2>&1; then
+    DC="docker compose"
+elif docker-compose version > /dev/null 2>&1; then
+    DC="docker-compose"
+else
+    echo ""
+    echo "  ✖  ERROR: neither 'docker compose' nor 'docker-compose' found."
+    echo "     Please install Docker with the Compose plugin."
+    echo ""
+    exit 1
+fi
+
 
 if [ "$MODE" = "full" ]; then
     echo "  ▶  Starting MailHSC (full mode — Traefik + HTTPS)..."
