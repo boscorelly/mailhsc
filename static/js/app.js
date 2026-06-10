@@ -5,6 +5,11 @@ document.querySelectorAll('[data-i18n]').forEach(function(el) {
   var key = el.getAttribute('data-i18n');
   if (T[key] && typeof T[key] === 'string') el.textContent = T[key];
 });
+document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+  var key = el.getAttribute('data-i18n-title');
+  if (T[key]) el.setAttribute('title', T[key]);
+});
+
 document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
   var key = el.getAttribute('data-i18n-placeholder');
   if (T[key] && typeof T[key] === 'string') el.placeholder = T[key];
@@ -605,6 +610,18 @@ function renderDomainGuardian(summary) {
   var panels = document.getElementById('sectionDG');
   panels.style.display = 'block';
 
+  function setupRefresh(domain, scoreEl, gradeEl, linkEl, loadingEl, resultEl, errorEl, refreshId, refreshErrId) {
+    var run = function() {
+      resultEl.classList.add('hidden');
+      errorEl.classList.add('hidden');
+      runDGCheck(domain, scoreEl, gradeEl, linkEl, loadingEl, resultEl, errorEl);
+    };
+    var btn = document.getElementById(refreshId);
+    if (btn) btn.addEventListener('click', run);
+    var btnErr = document.getElementById(refreshErrId);
+    if (btnErr) btnErr.addEventListener('click', run);
+  }
+
   if (fromDomain) {
     document.getElementById('dgFromDomain').textContent = fromDomain;
     runDGCheck(fromDomain,
@@ -614,6 +631,15 @@ function renderDomainGuardian(summary) {
       document.getElementById('dgFromLoading'),
       document.getElementById('dgFromResult'),
       document.getElementById('dgFromError')
+    );
+    setupRefresh(fromDomain,
+      document.getElementById('dgFromScore'),
+      document.getElementById('dgFromGrade'),
+      document.getElementById('dgFromLink'),
+      document.getElementById('dgFromLoading'),
+      document.getElementById('dgFromResult'),
+      document.getElementById('dgFromError'),
+      'dgFromRefresh', 'dgFromRefreshErr'
     );
   } else {
     document.getElementById('dgFrom').style.display = 'none';
@@ -628,6 +654,15 @@ function renderDomainGuardian(summary) {
       document.getElementById('dgToLoading'),
       document.getElementById('dgToResult'),
       document.getElementById('dgToError')
+    );
+    setupRefresh(toDomain,
+      document.getElementById('dgToScore'),
+      document.getElementById('dgToGrade'),
+      document.getElementById('dgToLink'),
+      document.getElementById('dgToLoading'),
+      document.getElementById('dgToResult'),
+      document.getElementById('dgToError'),
+      'dgToRefresh', 'dgToRefreshErr'
     );
   } else {
     document.getElementById('dgTo').style.display = 'none';
