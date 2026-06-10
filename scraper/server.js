@@ -5,6 +5,43 @@ const { URL }    = require('url');
 const { chromium } = require('playwright');
 
 const PORT = process.env.SCRAPER_PORT || 3000;
+const fs   = require('fs');
+const path = require('path');
+
+// ── Local cache (file-based, 1h TTL) ─────────────────────────────────────────
+const CACHE_DIR = process.env.CACHE_DIR || '/tmp/dg-cache';
+const CACHE_TTL_MS = 60 * 60 * 1000;
+try { fs.mkdirSync(CACHE_DIR, { recursive: true }); } catch {}
+
+function cacheGet(domain) {
+  try {
+    const f = path.join(CACHE_DIR, domain + '.json');
+    const stat = fs.statSync(f);
+    if (Date.now() - stat.mtimeMs > CACHE_TTL_MS) return null;
+    return JSON.parse(fs.readFileSync(f, 'utf8'));
+  } catch { return null; }
+}
+
+function cacheSet(domain, result) {
+  try {
+    fs.writeFileSync(path.join(CACHE_DIR, domain + '.json'), JSON.stringify(result));
+  } catch {}
+}
+
+// ── Concurrency limit: max 2 simultaneous Chromium pages ─────────────────────
+let active = 0;
+const waiting = [];
+function acquire() {
+  return new Promise(resolve => {
+    if (active < 2) { active++; resolve(); }
+    else waiting.push(resolve);
+  });
+}
+function release() {
+  active--;
+  const next = waiting.shift();
+  if (next) { active++; next(); }
+}
 
 // One shared browser instance — reuse across requests
 let browser = null;
@@ -103,8 +140,23 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Serve from cache when fresh
+  const cached = cacheGet(domain);
+  if (cached) {
+    res.writeHead(200);
+    res.end(JSON.stringify(cached));
+    return;
+  }
+
   try {
-    const result = await checkDomain(domain);
+    await acquire();
+    let result;
+    try {
+      result = await checkDomain(domain);
+    } finally {
+      release();
+    }
+    if (result.score !== null) cacheSet(domain, result);
     res.writeHead(200);
     res.end(JSON.stringify(result));
   } catch (err) {
