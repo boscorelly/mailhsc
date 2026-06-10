@@ -27,6 +27,7 @@ All notable changes to MailHSC are documented in this file.
 - Scraper: `waitUntil: 'networkidle'` replaced by `'load'` — DomainGuardian's continuous DoH requests prevented networkidle from ever firing
 - Scraper: score read after stabilization polling — "Scanned on" appears while score is still 0, final value computed a few seconds later
 - `pin-images.sh` updated with the Playwright base image
+- `DEPLOY_MODE` is now required and must be set explicitly: `.env.example` ships with an empty value, first launch creates `.env` and exits asking to configure it, and `start.sh`/`Makefile` abort with a clear error if the mode is missing — removes the silent and inconsistent defaults (template said `full`, scripts fell back to `standalone`)
 
 ### Security
 - `/api/dg` rate-limited Go-side (10 req/min per IP, sliding window with periodic purge) — works in both full and standalone modes; Traefik-side limit removed to avoid double counting
