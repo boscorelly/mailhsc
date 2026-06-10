@@ -38,6 +38,8 @@ fetch('/api/version')
   })
   .catch(function() {});
 
+var EMPTY_AUTH = {result: 'none', details: ''};
+
 // ─── Floating nav ────────────────────────────────────────────────────────────
 var floatNav = document.getElementById('floatNav');
 
@@ -295,8 +297,7 @@ function renderScore(sec, auth) {
   // Auth pills — resultClass() whitelists CSS class names
   var pills = document.getElementById('authPills');
   pills.innerHTML = '';
-  var emptyAuth = {result: 'none', details: ''};
-  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['NP', auth.np || emptyAuth]].forEach(function(entry) {
+  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['NP', auth.np || EMPTY_AUTH]].forEach(function(entry) {
     var proto = entry[0], e = entry[1];
     var cls   = resultClass(e.result);           // whitelisted CSS class
     var span  = document.createElement('span');
@@ -473,8 +474,7 @@ function makeDelayBadge(delay, index) {
 function renderAuth(auth) {
   var grid = document.getElementById('authGrid');
   grid.innerHTML = '';
-  var emptyAuth2 = {result: 'none', details: ''};
-  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['ARC', auth.arc], ['NP', auth.np || emptyAuth2]].forEach(function(e) {
+  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['ARC', auth.arc], ['NP', auth.np || EMPTY_AUTH]].forEach(function(e) {
     var proto = e[0], entry = e[1];
     var item  = document.createElement('div'); item.className = 'auth-item';
 
@@ -574,8 +574,10 @@ function runDGCheck(domain, scoreEl, gradeEl, linkEl, loadingEl, resultEl, error
   resultEl.classList.add('hidden');
   errorEl.classList.add('hidden');
 
-  fetch('/api/dg?domain=' + encodeURIComponent(domain))
-    .then(function(r) { return r.json(); })
+  var ctrl = new AbortController();
+  var timer = setTimeout(function() { ctrl.abort(); }, 75000);
+  fetch('/api/dg?domain=' + encodeURIComponent(domain), { signal: ctrl.signal })
+    .then(function(r) { clearTimeout(timer); return r.json(); })
     .then(function(d) {
       loadingEl.classList.add('hidden');
       if (!d.score && !d.grade) throw new Error('no data');
