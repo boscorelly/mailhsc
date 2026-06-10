@@ -37,11 +37,11 @@ cd mailhsc
 make up
 ```
 
-`make up` runs `start.sh` which reads `DEPLOY_MODE` from `.env` and starts the right stack:
+On first run, `make up` creates `.env` from `.env.example` and exits — review it and set `DEPLOY_MODE` (**required**), then run `make up` again:
 
 | `DEPLOY_MODE` | URL | TLS | Use case |
 |---|---|---|---|
-| `standalone` *(default)* | http://localhost:8080 | None | Local dev, behind existing proxy |
+| `standalone` | http://localhost:8080 | None | Local dev, behind existing proxy |
 | `full` | https://yourdomain.com | Let's Encrypt auto | Production |
 
 | Command | Description |
@@ -61,7 +61,7 @@ make up
 
 Everything lives in `.env` (auto-created from `.env.example` on first `make up`).
 
-### Standalone — default, no config needed
+### Standalone
 
 ```env
 DEPLOY_MODE=standalone
