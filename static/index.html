@@ -86,8 +86,11 @@
   </div>
 
   <div class="error-box hidden" id="errorBox">
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--danger)" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--danger)" stroke-width="1.5" stroke-linecap="round"/></svg>
-    <span id="errorMsg"></span>
+    <div class="error-content">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="var(--danger)" stroke-width="1.5"/><path d="M9 5v4M9 12v.5" stroke="var(--danger)" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span id="errorMsg"></span>
+    </div>
+    <button class="btn-ghost" id="errorBackBtn" data-i18n="back"></button>
   </div>
 
   <section class="results hidden" id="results">
@@ -95,8 +98,16 @@
       <h2 data-i18n="analysisReport"></h2>
       <button class="btn-ghost" id="newAnalysisBtn" data-i18n="newAnalysis"></button>
     </div>
+    <nav class="float-nav hidden" id="floatNav" aria-label="Sections">
+      <a href="#sectionScore"   class="float-nav-item" data-i18n="navScore"></a>
+      <a href="#sectionDG"      class="float-nav-item float-nav-dg hidden" data-i18n="navDomains"></a>
+      <a href="#sectionSummary" class="float-nav-item" data-i18n="navSummary"></a>
+      <a href="#sectionHops"    class="float-nav-item" data-i18n="navHops"></a>
+      <a href="#sectionAuth"    class="float-nav-item" data-i18n="navAuth"></a>
+      <a href="#sectionHeaders" class="float-nav-item" data-i18n="navHeaders"></a>
+    </nav>
 
-    <div class="score-card" id="scoreCard">
+    <div class="score-card" id="sectionScore">
       <div class="score-ring">
         <svg viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" stroke-width="8"/>
@@ -114,7 +125,52 @@
       </div>
     </div>
 
-    <div class="panel">
+    <!-- DomainGuardian panels -->
+    <div class="dg-wrapper" id="sectionDG" style="display:none" style="display:none">
+      <div class="panel-header dg-section-header">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L2 4.5v4c0 3.314 2.686 5.5 6 5.5s6-2.186 6-5.5v-4L8 1.5z" stroke="var(--accent)" stroke-width="1.2"/><path d="M5.5 8.5l2 2 3-3.5" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span data-i18n="dgSectionTitle"></span>
+        <button class="dg-refresh dg-refresh-all" id="dgRefreshAll" data-i18n-title="dgRefresh" title="">↻</button>
+      </div>
+      <div class="dg-panels">
+      <div class="dg-panel" id="dgFrom">
+        <div class="dg-panel-header" data-i18n="dgSender"></div>
+        <div class="dg-domain" id="dgFromDomain"></div>
+        <div class="dg-loading" id="dgFromLoading">
+          <div class="spinner"></div>
+        </div>
+        <div class="dg-result hidden" id="dgFromResult">
+          <div class="dg-score-wrap">
+            <span class="dg-score" id="dgFromScore"></span>
+            <span class="dg-score-label">/100</span>
+            <span class="dg-grade" id="dgFromGrade"></span>
+          </div>
+          <a class="dg-link" id="dgFromLink" target="_blank" rel="noopener noreferrer" data-i18n="dgLink"></a>
+        </div>
+        <div class="dg-error hidden" id="dgFromError" data-i18n="dgError"></div>
+      </div>
+      <div class="dg-panel" id="dgTo">
+        <div class="dg-panel-header" data-i18n="dgRecipient"></div>
+        <div class="dg-domain" id="dgToDomain"></div>
+        <div class="dg-loading" id="dgToLoading">
+          <div class="spinner"></div>
+        </div>
+        <div class="dg-result hidden" id="dgToResult">
+          <div class="dg-score-wrap">
+            <span class="dg-score" id="dgToScore"></span>
+            <span class="dg-score-label">/100</span>
+            <span class="dg-grade" id="dgToGrade"></span>
+          </div>
+          <a class="dg-link" id="dgToLink" target="_blank" rel="noopener noreferrer" data-i18n="dgLink"></a>
+        </div>
+        <div class="dg-error hidden" id="dgToError" data-i18n="dgError"></div>
+      </div>
+    </div>
+
+      </div><!-- .dg-panels -->
+    </div><!-- .dg-wrapper -->
+
+    <div class="panel" id="sectionSummary">
       <div class="panel-header">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="var(--accent)" stroke-width="1.2"/><path d="M5 6h6M5 9h4" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/></svg>
         <span data-i18n="summary"></span>
@@ -122,7 +178,7 @@
       <div class="summary-grid" id="summaryGrid"></div>
     </div>
 
-    <div class="panel" id="hopsPanel">
+    <div class="panel" id="sectionHops">
       <div class="panel-header">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="3" cy="8" r="2" stroke="var(--accent)" stroke-width="1.2"/><circle cx="13" cy="8" r="2" stroke="var(--accent)" stroke-width="1.2"/><circle cx="8" cy="8" r="2" stroke="var(--accent)" stroke-width="1.2"/><path d="M5 8h1M10 8h1" stroke="var(--accent)" stroke-width="1.2"/></svg>
         <span data-i18n="routingPath"></span>
@@ -131,7 +187,7 @@
       <div class="hops-timeline" id="hopsTimeline"></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="sectionAuth">
       <div class="panel-header">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L2 4.5v4c0 3.314 2.686 5.5 6 5.5s6-2.186 6-5.5v-4L8 1.5z" stroke="var(--accent)" stroke-width="1.2"/><path d="M5.5 8.5l2 2 3-3.5" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/></svg>
         <span data-i18n="authentication"></span>
@@ -139,7 +195,7 @@
       <div class="auth-grid" id="authGrid"></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="sectionHeaders">
       <div class="panel-header">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h7M3 12h9" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/></svg>
         <span data-i18n="allHeaders"></span>

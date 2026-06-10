@@ -2,6 +2,42 @@
 
 All notable changes to MailHSC are documented in this file.
 
+## [1.3.0] - 2026-06-09
+
+### Added
+- **DomainGuardian integration** — after each analysis, the sender (From) and recipient (To) domains are automatically checked against DomainGuardian. Results displayed in two side-by-side panels with score, grade, and a direct link to the full DomainGuardian report
+- New `scraper/` service — Node.js + Playwright microservice that loads DomainGuardian and extracts the score and grade via headless Chromium
+- New `/api/dg?domain=xxx` endpoint in Go — validates the domain and proxies to the scraper service
+- Panels show a loading spinner while the check is in progress, then reveal score + grade + "Secure your domain with DomainGuardian →" link opening in a new tab
+- Section header "Domain Security" above the two columns (translated in EN, FR, DE, ES)
+- `make clean` — removes dangling containers and untagged images left by builds (tagged images are never affected)
+- Floating navigation menu on results view — sticky horizontal bar with links to Score, Domain Security, Summary, Routing, Authentication, Headers; active section highlighted on scroll
+- Routing path: intermediate hops collapsed by default — click to expand (only first and last shown)
+- Scraper: file-based result cache (1h TTL) — re-analyzing the same domain returns instantly without launching Chromium
+- Refresh button (↻) in the "Domain Security" header — force-refreshes both DG checks, bypassing and clearing the cache
+- Scraper: concurrency limited to 2 simultaneous Chromium pages (queue beyond)
+- Frontend: 75s timeout (`AbortController`) on DomainGuardian checks
+
+### Fixed
+- Input validation: pasted text checked against RFC 5322 header structure before submission — invalid content shows an error with a ← Back button
+- File validation: uploaded files verified for RFC 5322 compliance client-side before sending to server
+- `← Back` button on error screen returns to input and clears the textarea/file
+- "New Analysis" button now clears the textarea and selected file
+- `navAuth` label in French corrected to "Authentification"
+- BuildKit enabled (`DOCKER_BUILDKIT=1`) — no more orphan intermediate containers (e.g. `hardcore_ellis`) left after builds
+- Scraper: `waitUntil: 'networkidle'` replaced by `'load'` — DomainGuardian's continuous DoH requests prevented networkidle from ever firing
+- Scraper: score read after stabilization polling — "Scanned on" appears while score is still 0, final value computed a few seconds later
+- `pin-images.sh` updated with the Playwright base image
+- `DEPLOY_MODE` is now required and must be set explicitly: `.env.example` ships with an empty value, first launch creates `.env` and exits asking to configure it, and `start.sh`/`Makefile` abort with a clear error if the mode is missing — removes the silent and inconsistent defaults (template said `full`, scripts fell back to `standalone`)
+
+### Security
+- `/api/dg` rate-limited Go-side (10 req/min per IP, sliding window with periodic purge) — works in both full and standalone modes; Traefik-side limit removed to avoid double counting
+- Scraper error messages logged server-side only — generic response to client
+- Scraper response body limited to 4 KB via `io.LimitReader`
+- Scraper service on `mailhsc_external` network (needs internet) and `mailhsc_internal` (reachable by app only)
+
+---
+
 ## [1.2.1] - 2026-05-28
 
 ### Added
@@ -13,6 +49,7 @@ All notable changes to MailHSC are documented in this file.
 - `/api/version` now behind a rate-limited Traefik router (10 req/s per IP)
 
 ### Fixed
+- Docker network names forced with explicit `name:` to prevent double-prefix (`mailhsc_mailhsc_*`)
 - `auth.np` guarded against `undefined` — prevents crash on cached pre-1.2.0 responses
 - `resp.Body` explicitly closed in health probe before `os.Exit`
 - `sniStrict` production recommendation documented in `.env.example`

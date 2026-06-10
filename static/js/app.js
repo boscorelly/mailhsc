@@ -5,6 +5,11 @@ document.querySelectorAll('[data-i18n]').forEach(function(el) {
   var key = el.getAttribute('data-i18n');
   if (T[key] && typeof T[key] === 'string') el.textContent = T[key];
 });
+document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+  var key = el.getAttribute('data-i18n-title');
+  if (T[key]) el.setAttribute('title', T[key]);
+});
+
 document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
   var key = el.getAttribute('data-i18n-placeholder');
   if (T[key] && typeof T[key] === 'string') el.placeholder = T[key];
@@ -37,6 +42,56 @@ fetch('/api/version')
     if (el && d.version) el.textContent = 'v' + d.version;
   })
   .catch(function() {});
+
+var EMPTY_AUTH = {result: 'none', details: ''};
+
+// ─── Floating nav ────────────────────────────────────────────────────────────
+var floatNav = document.getElementById('floatNav');
+
+function updateActiveNav() {
+  var sections = ['sectionScore','sectionDG','sectionSummary','sectionHops','sectionAuth','sectionHeaders'];
+  var best = null, bestTop = Infinity;
+  sections.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el || el.style.display === 'none') return;
+    var top = Math.abs(el.getBoundingClientRect().top);
+    if (top < bestTop) { bestTop = top; best = id; }
+  });
+  document.querySelectorAll('.float-nav-item').forEach(function(a) {
+    var href = a.getAttribute('href').replace('#','');
+    a.classList.toggle('active', href === best);
+  });
+}
+
+window.addEventListener('scroll', updateActiveNav, { passive: true });
+
+function showFloatNav(show) {
+  floatNav.classList.toggle('hidden', !show);
+}
+
+function showDGNavItem(show) {
+  var el = document.querySelector('.float-nav-dg');
+  if (el) el.classList.toggle('hidden', !show);
+}
+
+// ─── Input validation ─────────────────────────────────────────────────────────
+function looksLikeEmailHeaders(text) {
+  var lines = text.split('\n');
+  var count = 0;
+  for (var i = 0; i < Math.min(lines.length, 50); i++) {
+    var line = lines[i].replace('\r', '');
+    if (line === '') break;
+    if (/^[A-Za-z0-9!#$%&'*+\-.^_`|~]+\s*:/.test(line)) { count++; }
+    else if (/^[ \t]/.test(line) && count > 0) { continue; }
+    else if (i > 0) { return false; }
+  }
+  return count >= 1;
+}
+
+// ─── File validation (RFC 5322 structure check) ───────────────────────────────
+function validateEMLContent(text) {
+  return looksLikeEmailHeaders(text);
+}
 
 // ─── Tab switching ───────────────────────────────────────────────────────────
 // Safe: data-tab values come from static HTML, not user input.
@@ -117,13 +172,47 @@ document.getElementById('clearBtn').addEventListener('click', function() {
 document.getElementById('analyzeBtn').addEventListener('click', function() {
   var raw = document.getElementById('headersInput').value.trim();
   if (!raw) return;
+  if (!looksLikeEmailHeaders(raw)) {
+    showError(T.invalidHeaders);
+    return;
+  }
   analyzeJSON(raw);
 });
 document.getElementById('analyzeFileBtn').addEventListener('click', function() {
   if (!selectedFile) return;
-  analyzeFile(selectedFile);
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var text = e.target.result;
+    if (!validateEMLContent(text)) {
+      showError(T.invalidEML);
+      return;
+    }
+    analyzeFile(selectedFile);
+  };
+  reader.onerror = function() { showError(T.invalidEML); };
+  reader.readAsText(selectedFile);
 });
+document.getElementById('errorBackBtn').addEventListener('click', function() {
+  document.getElementById('headersInput').value = '';
+  clearFile();
+  showSection('input');
+});
+
 document.getElementById('newAnalysisBtn').addEventListener('click', function() {
+  // Reset DG panels
+  var panels = document.getElementById('sectionDG');
+  panels.style.display = 'none';
+  ['dgFrom','dgTo'].forEach(function(id) {
+    var el = document.getElementById(id); if(el) el.style.display = '';
+  });
+  ['dgFromResult','dgToResult','dgFromError','dgToError'].forEach(function(id) {
+    var el = document.getElementById(id); if(el) el.classList.add('hidden');
+  });
+  ['dgFromLoading','dgToLoading'].forEach(function(id) {
+    var el = document.getElementById(id); if(el) el.classList.remove('hidden');
+  });
+  showFloatNav(false);
+  document.getElementById('headersInput').value = '';
   showSection('input');
   clearFile();
 });
@@ -166,10 +255,8 @@ function showSection(name) {
   document.getElementById('results').classList.toggle('hidden', name !== 'results');
 }
 function showError(msg) {
-  // textContent — safe, no XSS risk
   document.getElementById('errorMsg').textContent = msg;
   showSection('error');
-  setTimeout(function() { showSection('input'); }, 4000);
 }
 
 // ─── Render ───────────────────────────────────────────────────────────────────
@@ -187,7 +274,11 @@ function renderResults(d) {
   // textContent — safe
   document.getElementById('headersCount').textContent = allHeaders.length;
   document.getElementById('toggleHeaders').textContent = T.showAll;
+  renderDomainGuardian(d.summary);
+  showFloatNav(true);
+  showDGNavItem(!!(domainFromEmail(d.summary.from) || domainFromEmail(d.summary.to)));
   showSection('results');
+  setTimeout(updateActiveNav, 100);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -211,8 +302,7 @@ function renderScore(sec, auth) {
   // Auth pills — resultClass() whitelists CSS class names
   var pills = document.getElementById('authPills');
   pills.innerHTML = '';
-  var emptyAuth = {result: 'none', details: ''};
-  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['NP', auth.np || emptyAuth]].forEach(function(entry) {
+  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['NP', auth.np || EMPTY_AUTH]].forEach(function(entry) {
     var proto = entry[0], e = entry[1];
     var cls   = resultClass(e.result);           // whitelisted CSS class
     var span  = document.createElement('span');
@@ -279,7 +369,6 @@ function renderSummary(s) {
 // ── Hops ─────────────────────────────────────────────────────────────────────
 function renderHops(hops) {
   var el = document.getElementById('hopsTimeline');
-  // textContent — safe
   document.getElementById('hopsCount').textContent = (hops ? hops.length : 0) + ' ' + T.hops;
 
   el.innerHTML = '';
@@ -291,8 +380,29 @@ function renderHops(hops) {
     return;
   }
 
+  // For 3+ hops: show first + last, collapse middle behind an expand toggle
+  var showAll = hops.length <= 2;
+  var hiddenCount = hops.length - 2;
+
   hops.forEach(function(hop, i) {
     var isOrigin = i === 0, isLast = i === hops.length - 1;
+    var isMiddle = !isOrigin && !isLast;
+
+    // Insert expand toggle before first middle hop
+    if (isMiddle && i === 1 && !showAll) {
+      var toggle = document.createElement('div');
+      toggle.className = 'hop-expand';
+      toggle.setAttribute('data-hidden', hiddenCount);
+      var toggleText = document.createElement('span');
+      toggleText.textContent = '+ ' + hiddenCount + ' ' + T.hopsHidden;
+      toggle.appendChild(toggleText);
+      toggle.addEventListener('click', function() {
+        // Show all hidden hops and remove toggle
+        el.querySelectorAll('.hop-item.hidden').forEach(function(h) { h.classList.remove('hidden'); });
+        toggle.remove();
+      });
+      el.appendChild(toggle);
+    }
 
     var wrapper    = document.createElement('div'); wrapper.className = 'hop-item';
     var connector  = document.createElement('div'); connector.className = 'hop-connector';
@@ -338,6 +448,7 @@ function renderHops(hops) {
       body.appendChild(ts);
     }
 
+    if (isMiddle && !showAll) wrapper.classList.add('hidden');
     wrapper.appendChild(connector);
     wrapper.appendChild(body);
     el.appendChild(wrapper);
@@ -368,8 +479,7 @@ function makeDelayBadge(delay, index) {
 function renderAuth(auth) {
   var grid = document.getElementById('authGrid');
   grid.innerHTML = '';
-  var emptyAuth2 = {result: 'none', details: ''};
-  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['ARC', auth.arc], ['NP', auth.np || emptyAuth2]].forEach(function(e) {
+  [['SPF', auth.spf], ['DKIM', auth.dkim], ['DMARC', auth.dmarc], ['ARC', auth.arc], ['NP', auth.np || EMPTY_AUTH]].forEach(function(e) {
     var proto = e[0], entry = e[1];
     var item  = document.createElement('div'); item.className = 'auth-item';
 
@@ -438,6 +548,114 @@ document.getElementById('toggleHeaders').addEventListener('click', function() {
   renderHeaders(allHeaders, showAllHeaders);
   document.getElementById('toggleHeaders').textContent = showAllHeaders ? T.showLess : T.showAll;
 });
+
+// ─── DomainGuardian checks ───────────────────────────────────────────────────
+function domainFromEmail(email) {
+  if (!email) return null;
+  var parts = email.split('@');
+  if (parts.length < 2) return null;
+  var domain = parts[parts.length - 1].trim().replace(/[>)]+$/, '').trim();
+  return domain || null;
+}
+
+function gradeClass(grade) {
+  if (!grade) return '';
+  var g = grade.charAt(0).toUpperCase();
+  return g;
+}
+
+function dgColorFromGrade(grade) {
+  if (!grade) return 'var(--muted)';
+  var g = grade.charAt(0).toUpperCase();
+  if (g === 'A') return 'var(--success)';
+  if (g === 'B') return 'var(--accent2)';
+  if (g === 'C') return 'var(--warn)';
+  if (g === 'D') return 'var(--warn)';
+  return 'var(--danger)';
+}
+
+function runDGCheck(domain, scoreEl, gradeEl, linkEl, loadingEl, resultEl, errorEl, force) {
+  loadingEl.classList.remove('hidden');
+  resultEl.classList.add('hidden');
+  errorEl.classList.add('hidden');
+
+  var ctrl = new AbortController();
+  var timer = setTimeout(function() { ctrl.abort(); }, 75000);
+  var url = '/api/dg?domain=' + encodeURIComponent(domain) + (force ? '&force=1' : '');
+  fetch(url, { signal: ctrl.signal })
+    .then(function(r) { clearTimeout(timer); return r.json(); })
+    .then(function(d) {
+      loadingEl.classList.add('hidden');
+      if (!d.score && !d.grade) throw new Error('no data');
+      scoreEl.textContent = d.score || '?';
+      var color = dgColorFromGrade(d.grade);
+      scoreEl.style.color = color;
+      gradeEl.textContent = d.grade || '?';
+      gradeEl.className = 'dg-grade ' + gradeClass(d.grade);
+      linkEl.href = 'https://domainguardian.nebiatek.com/results?domain=' + encodeURIComponent(domain);
+      linkEl.textContent = T.dgLink;
+      resultEl.classList.remove('hidden');
+    })
+    .catch(function() {
+      loadingEl.classList.add('hidden');
+      errorEl.classList.remove('hidden');
+    });
+}
+
+function renderDomainGuardian(summary) {
+  var fromDomain = domainFromEmail(summary.from);
+  var toDomain   = domainFromEmail(summary.to);
+
+  if (!fromDomain && !toDomain) return;
+
+  var panels = document.getElementById('sectionDG');
+  panels.style.display = 'block';
+
+  // Global refresh button — re-runs both domain checks with cache bypass
+  var refreshAll = document.getElementById('dgRefreshAll');
+  if (refreshAll) {
+    refreshAll.onclick = function() {
+      if (fromDomain) runDGCheck(fromDomain,
+        document.getElementById('dgFromScore'), document.getElementById('dgFromGrade'),
+        document.getElementById('dgFromLink'), document.getElementById('dgFromLoading'),
+        document.getElementById('dgFromResult'), document.getElementById('dgFromError'), true);
+      if (toDomain) runDGCheck(toDomain,
+        document.getElementById('dgToScore'), document.getElementById('dgToGrade'),
+        document.getElementById('dgToLink'), document.getElementById('dgToLoading'),
+        document.getElementById('dgToResult'), document.getElementById('dgToError'), true);
+    };
+  }
+
+  if (fromDomain) {
+    document.getElementById('dgFromDomain').textContent = fromDomain;
+    runDGCheck(fromDomain,
+      document.getElementById('dgFromScore'),
+      document.getElementById('dgFromGrade'),
+      document.getElementById('dgFromLink'),
+      document.getElementById('dgFromLoading'),
+      document.getElementById('dgFromResult'),
+      document.getElementById('dgFromError')
+    );
+
+  } else {
+    document.getElementById('dgFrom').style.display = 'none';
+  }
+
+  if (toDomain) {
+    document.getElementById('dgToDomain').textContent = toDomain;
+    runDGCheck(toDomain,
+      document.getElementById('dgToScore'),
+      document.getElementById('dgToGrade'),
+      document.getElementById('dgToLink'),
+      document.getElementById('dgToLoading'),
+      document.getElementById('dgToResult'),
+      document.getElementById('dgToError')
+    );
+
+  } else {
+    document.getElementById('dgTo').style.display = 'none';
+  }
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function translateIssue(code, params) {

@@ -10,7 +10,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VERSION: "1.2.1"
+        VERSION: "1.3.0"
     image: mailhsc-app:latest
     container_name: mailhsc-app
     restart: unless-stopped
@@ -75,6 +75,15 @@ services:
       traefik.http.routers.mailhsc-api.priority: "10"
       traefik.http.routers.mailhsc-api.middlewares: "mailhsc-security-headers@docker,mailhsc-body-limit@docker,mailhsc-rate-limit@docker,mailhsc-compress@docker"
 
+      # ── Router: /api/dg — rate limited ──────────────────────────────────────
+      traefik.http.routers.mailhsc-dg.rule: "Host(`${DOMAIN:-localhost}`) && Path(`/api/dg`)"
+      traefik.http.routers.mailhsc-dg.entrypoints: "websecure"
+      traefik.http.routers.mailhsc-dg.tls: "true"
+      traefik.http.routers.mailhsc-dg.tls.certresolver: "${ACME_RESOLVER:-}"
+      traefik.http.routers.mailhsc-dg.priority: "10"
+      # Rate limiting handled Go-side (works in both full and standalone modes)
+      traefik.http.routers.mailhsc-dg.middlewares: "mailhsc-security-headers@docker"
+
       # ── Router: /api/version — rate limited ─────────────────────────────────
       traefik.http.routers.mailhsc-version.rule: "Host(`${DOMAIN:-localhost}`) && Path(`/api/version`)"
       traefik.http.routers.mailhsc-version.entrypoints: "websecure"
@@ -103,7 +112,7 @@ services:
       traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.X-XSS-Protection: "1; mode=block"
       traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Referrer-Policy: "no-referrer"
       traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Permissions-Policy: "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), usb=(), web-share=(), xr-spatial-tracking=()"
-      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Content-Security-Policy: "default-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+      traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Content-Security-Policy: "default-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
       traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.Server: ""
       traefik.http.middlewares.mailhsc-security-headers.headers.customResponseHeaders.X-Powered-By: ""
       traefik.http.middlewares.mailhsc-security-headers.headers.stsSeconds: "31536000"
@@ -128,6 +137,52 @@ services:
 
       # ── Middleware: gzip/brotli compression ──────────────────────────────────
       traefik.http.middlewares.mailhsc-compress.compress: "true"
+
+  # ─── DomainGuardian scraper service ─────────────────────────────────────────
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    image: mailhsc-scraper:latest
+    container_name: mailhsc-scraper
+    restart: unless-stopped
+
+    environment:
+      SCRAPER_PORT: "3000"
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    networks:
+      - mailhsc_external   # needs internet — must be first for default route
+      - mailhsc_internal   # reachable by app
+
+    expose:
+      - "3000"
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          memory: 128M
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ─── Traefik reverse proxy ────────────────────────────────────────────────────
   traefik:

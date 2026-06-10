@@ -7,9 +7,11 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"mailhsc/internal/parser"
@@ -56,6 +58,7 @@ func main() {
 
 	// API endpoints
 	mux.HandleFunc("/api/analyze", withSecurity(handleAnalyze))
+	mux.HandleFunc("/api/dg", handleDomainGuardian)
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/version", handleVersion)
 
@@ -200,6 +203,117 @@ func noListingFileServer(root http.FileSystem) http.Handler {
 		}
 		fs.ServeHTTP(w, r)
 	})
+}
+
+// dgRateLimiter: simple per-IP rate limit for /api/dg — 10 requests per minute.
+// Covers both full and standalone modes (Traefik rate limit only exists in full mode).
+var dgRateMu sync.Mutex
+var dgRateMap = make(map[string][]time.Time)
+
+func dgRateAllow(ip string) bool {
+	dgRateMu.Lock()
+	defer dgRateMu.Unlock()
+	now := time.Now()
+	cutoff := now.Add(-time.Minute)
+	var recent []time.Time
+	for _, t := range dgRateMap[ip] {
+		if t.After(cutoff) {
+			recent = append(recent, t)
+		}
+	}
+	if len(recent) == 0 {
+		delete(dgRateMap, ip)
+	} else {
+		dgRateMap[ip] = recent
+	}
+	if len(recent) >= 10 {
+		return false
+	}
+	dgRateMap[ip] = append(recent, now)
+	return true
+}
+
+// purge stale rate-limit entries every 10 minutes
+func init() {
+	go func() {
+		for range time.Tick(10 * time.Minute) {
+			dgRateMu.Lock()
+			cutoff := time.Now().Add(-time.Minute)
+			for ip, times := range dgRateMap {
+				keep := times[:0]
+				for _, t := range times {
+					if t.After(cutoff) {
+						keep = append(keep, t)
+					}
+				}
+				if len(keep) == 0 {
+					delete(dgRateMap, ip)
+				} else {
+					dgRateMap[ip] = keep
+				}
+			}
+			dgRateMu.Unlock()
+		}
+	}()
+}
+
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+// handleDomainGuardian proxies a domain check to the internal scraper service.
+func handleDomainGuardian(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		jsonError(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if !dgRateAllow(clientIP(r)) {
+		jsonError(w, "rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
+
+	domain := r.URL.Query().Get("domain")
+	if domain == "" {
+		jsonError(w, "missing domain parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Basic domain validation — alphanumeric, dots, hyphens only
+	for _, ch := range domain {
+		if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+			(ch >= '0' && ch <= '9') || ch == '.' || ch == '-') {
+			jsonError(w, "invalid domain", http.StatusBadRequest)
+			return
+		}
+	}
+	if len(domain) > 253 {
+		jsonError(w, "domain too long", http.StatusBadRequest)
+		return
+	}
+
+	force := r.URL.Query().Get("force")
+	scraperURL := "http://scraper:3000/check?domain=" + domain
+	if force == "1" {
+		scraperURL += "&force=1"
+	}
+	client := &http.Client{Timeout: 90 * time.Second}
+	resp, err := client.Get(scraperURL)
+	if err != nil {
+		log.Printf("scraper error for %s: %v", domain, err)
+		jsonError(w, "scraper unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	defer resp.Body.Close()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	// Limit response size — scraper should only return a small JSON object
+	io.Copy(w, io.LimitReader(resp.Body, 4096))
 }
 
 func handleVersion(w http.ResponseWriter, r *http.Request) {

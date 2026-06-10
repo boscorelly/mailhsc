@@ -37,11 +37,11 @@ cd mailhsc
 make up
 ```
 
-`make up` runs `start.sh` which reads `DEPLOY_MODE` from `.env` and starts the right stack:
+On first run, `make up` creates `.env` from `.env.example` and exits — review it and set `DEPLOY_MODE` (**required**), then run `make up` again:
 
 | `DEPLOY_MODE` | URL | TLS | Use case |
 |---|---|---|---|
-| `standalone` *(default)* | http://localhost:8080 | None | Local dev, behind existing proxy |
+| `standalone` | http://localhost:8080 | None | Local dev, behind existing proxy |
 | `full` | https://yourdomain.com | Let's Encrypt auto | Production |
 
 | Command | Description |
@@ -51,6 +51,7 @@ make up
 | `make update` | Stop, rebuild without cache, restart |
 | `make logs` | Follow logs |
 | `make build` | Build image only |
+| `make clean` | Remove dangling containers and untagged images |
 
 > Always use `make up` / `make update` — never `docker compose up -d` directly.
 
@@ -60,7 +61,7 @@ make up
 
 Everything lives in `.env` (auto-created from `.env.example` on first `make up`).
 
-### Standalone — default, no config needed
+### Standalone
 
 ```env
 DEPLOY_MODE=standalone
