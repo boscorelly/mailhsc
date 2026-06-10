@@ -562,6 +562,14 @@ textarea::placeholder { color: var(--muted); }
   font-family: var(--font-mono);
 }
 .dg-link:hover { text-decoration: underline; }
+.dg-refresh {
+  background: none; border: 1px solid var(--border2); border-radius: 6px;
+  color: var(--muted); cursor: pointer; font-size: .85rem;
+  padding: 2px 7px; margin-left: .5rem;
+  transition: color .15s, border-color .15s;
+  font-family: var(--font-mono);
+}
+.dg-refresh:hover { color: var(--accent); border-color: var(--accent); }
 .dg-error { font-size: .78rem; color: var(--muted); }
 .dg-panel .spinner { width: 20px; height: 20px; }
 
