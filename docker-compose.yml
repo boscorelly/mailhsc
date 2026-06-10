@@ -81,7 +81,8 @@ services:
       traefik.http.routers.mailhsc-dg.tls: "true"
       traefik.http.routers.mailhsc-dg.tls.certresolver: "${ACME_RESOLVER:-}"
       traefik.http.routers.mailhsc-dg.priority: "10"
-      traefik.http.routers.mailhsc-dg.middlewares: "mailhsc-security-headers@docker,mailhsc-rate-limit@docker"
+      # Rate limiting handled Go-side (works in both full and standalone modes)
+      traefik.http.routers.mailhsc-dg.middlewares: "mailhsc-security-headers@docker"
 
       # ── Router: /api/version — rate limited ─────────────────────────────────
       traefik.http.routers.mailhsc-version.rule: "Host(`${DOMAIN:-localhost}`) && Path(`/api/version`)"
