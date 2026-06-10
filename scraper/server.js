@@ -124,10 +124,11 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  let domain;
+  let domain, force = false;
   try {
     const u  = new URL(req.url, `http://localhost:${PORT}`);
     domain   = u.searchParams.get('domain');
+    force    = u.searchParams.get('force') === '1';
   } catch {
     res.writeHead(400);
     res.end(JSON.stringify({ error: 'invalid url' }));
@@ -141,7 +142,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Force-refresh: delete cache entry before fetching
-  const force = u.searchParams.get('force') === '1';
   if (force) {
     try { fs.unlinkSync(path.join(CACHE_DIR, domain + '.json')); } catch {}
   }
