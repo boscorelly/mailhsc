@@ -296,7 +296,11 @@ func handleDomainGuardian(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	force := r.URL.Query().Get("force")
 	scraperURL := "http://scraper:3000/check?domain=" + domain
+	if force == "1" {
+		scraperURL += "&force=1"
+	}
 	client := &http.Client{Timeout: 90 * time.Second}
 	resp, err := client.Get(scraperURL)
 	if err != nil {
