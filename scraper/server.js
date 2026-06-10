@@ -140,8 +140,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Serve from cache when fresh
-  const cached = cacheGet(domain);
+  // Force-refresh: delete cache entry before fetching
+  const force = u.searchParams.get('force') === '1';
+  if (force) {
+    try { fs.unlinkSync(path.join(CACHE_DIR, domain + '.json')); } catch {}
+  }
+
+  // Serve from cache when fresh (unless force refresh)
+  const cached = !force && cacheGet(domain);
   if (cached) {
     res.writeHead(200);
     res.end(JSON.stringify(cached));
