@@ -574,14 +574,15 @@ function dgColorFromGrade(grade) {
   return 'var(--danger)';
 }
 
-function runDGCheck(domain, scoreEl, gradeEl, linkEl, loadingEl, resultEl, errorEl) {
+function runDGCheck(domain, scoreEl, gradeEl, linkEl, loadingEl, resultEl, errorEl, force) {
   loadingEl.classList.remove('hidden');
   resultEl.classList.add('hidden');
   errorEl.classList.add('hidden');
 
   var ctrl = new AbortController();
   var timer = setTimeout(function() { ctrl.abort(); }, 75000);
-  fetch('/api/dg?domain=' + encodeURIComponent(domain), { signal: ctrl.signal })
+  var url = '/api/dg?domain=' + encodeURIComponent(domain) + (force ? '&force=1' : '');
+  fetch(url, { signal: ctrl.signal })
     .then(function(r) { clearTimeout(timer); return r.json(); })
     .then(function(d) {
       loadingEl.classList.add('hidden');
@@ -610,16 +611,19 @@ function renderDomainGuardian(summary) {
   var panels = document.getElementById('sectionDG');
   panels.style.display = 'block';
 
-  function setupRefresh(domain, scoreEl, gradeEl, linkEl, loadingEl, resultEl, errorEl, refreshId, refreshErrId) {
-    var run = function() {
-      resultEl.classList.add('hidden');
-      errorEl.classList.add('hidden');
-      runDGCheck(domain, scoreEl, gradeEl, linkEl, loadingEl, resultEl, errorEl);
+  // Global refresh button — re-runs both domain checks with cache bypass
+  var refreshAll = document.getElementById('dgRefreshAll');
+  if (refreshAll) {
+    refreshAll.onclick = function() {
+      if (fromDomain) runDGCheck(fromDomain,
+        document.getElementById('dgFromScore'), document.getElementById('dgFromGrade'),
+        document.getElementById('dgFromLink'), document.getElementById('dgFromLoading'),
+        document.getElementById('dgFromResult'), document.getElementById('dgFromError'), true);
+      if (toDomain) runDGCheck(toDomain,
+        document.getElementById('dgToScore'), document.getElementById('dgToGrade'),
+        document.getElementById('dgToLink'), document.getElementById('dgToLoading'),
+        document.getElementById('dgToResult'), document.getElementById('dgToError'), true);
     };
-    var btn = document.getElementById(refreshId);
-    if (btn) btn.addEventListener('click', run);
-    var btnErr = document.getElementById(refreshErrId);
-    if (btnErr) btnErr.addEventListener('click', run);
   }
 
   if (fromDomain) {
@@ -632,15 +636,7 @@ function renderDomainGuardian(summary) {
       document.getElementById('dgFromResult'),
       document.getElementById('dgFromError')
     );
-    setupRefresh(fromDomain,
-      document.getElementById('dgFromScore'),
-      document.getElementById('dgFromGrade'),
-      document.getElementById('dgFromLink'),
-      document.getElementById('dgFromLoading'),
-      document.getElementById('dgFromResult'),
-      document.getElementById('dgFromError'),
-      'dgFromRefresh', 'dgFromRefreshErr'
-    );
+
   } else {
     document.getElementById('dgFrom').style.display = 'none';
   }
@@ -655,15 +651,7 @@ function renderDomainGuardian(summary) {
       document.getElementById('dgToResult'),
       document.getElementById('dgToError')
     );
-    setupRefresh(toDomain,
-      document.getElementById('dgToScore'),
-      document.getElementById('dgToGrade'),
-      document.getElementById('dgToLink'),
-      document.getElementById('dgToLoading'),
-      document.getElementById('dgToResult'),
-      document.getElementById('dgToError'),
-      'dgToRefresh', 'dgToRefreshErr'
-    );
+
   } else {
     document.getElementById('dgTo').style.display = 'none';
   }
