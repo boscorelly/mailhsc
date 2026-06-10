@@ -14,6 +14,7 @@ All notable changes to MailHSC are documented in this file.
 - Floating navigation menu on results view — sticky horizontal bar with links to Score, Domain Security, Summary, Routing, Authentication, Headers; active section highlighted on scroll
 - Routing path: intermediate hops collapsed by default — click to expand (only first and last shown)
 - Scraper: file-based result cache (1h TTL) — re-analyzing the same domain returns instantly without launching Chromium
+- Refresh button (↻) in the "Domain Security" header — force-refreshes both DG checks, bypassing and clearing the cache
 - Scraper: concurrency limited to 2 simultaneous Chromium pages (queue beyond)
 - Frontend: 75s timeout (`AbortController`) on DomainGuardian checks
 
