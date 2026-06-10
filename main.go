@@ -7,9 +7,11 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"mailhsc/internal/parser"
@@ -203,10 +205,75 @@ func noListingFileServer(root http.FileSystem) http.Handler {
 	})
 }
 
+// dgRateLimiter: simple per-IP rate limit for /api/dg — 10 requests per minute.
+// Covers both full and standalone modes (Traefik rate limit only exists in full mode).
+var dgRateMu sync.Mutex
+var dgRateMap = make(map[string][]time.Time)
+
+func dgRateAllow(ip string) bool {
+	dgRateMu.Lock()
+	defer dgRateMu.Unlock()
+	now := time.Now()
+	cutoff := now.Add(-time.Minute)
+	var recent []time.Time
+	for _, t := range dgRateMap[ip] {
+		if t.After(cutoff) {
+			recent = append(recent, t)
+		}
+	}
+	if len(recent) == 0 {
+		delete(dgRateMap, ip)
+	} else {
+		dgRateMap[ip] = recent
+	}
+	if len(recent) >= 10 {
+		return false
+	}
+	dgRateMap[ip] = append(recent, now)
+	return true
+}
+
+// purge stale rate-limit entries every 10 minutes
+func init() {
+	go func() {
+		for range time.Tick(10 * time.Minute) {
+			dgRateMu.Lock()
+			cutoff := time.Now().Add(-time.Minute)
+			for ip, times := range dgRateMap {
+				keep := times[:0]
+				for _, t := range times {
+					if t.After(cutoff) {
+						keep = append(keep, t)
+					}
+				}
+				if len(keep) == 0 {
+					delete(dgRateMap, ip)
+				} else {
+					dgRateMap[ip] = keep
+				}
+			}
+			dgRateMu.Unlock()
+		}
+	}()
+}
+
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
 // handleDomainGuardian proxies a domain check to the internal scraper service.
 func handleDomainGuardian(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		jsonError(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if !dgRateAllow(clientIP(r)) {
+		jsonError(w, "rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}
 
