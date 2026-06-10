@@ -30,11 +30,25 @@ async function checkDomain(domain) {
       `https://domainguardian.nebiatek.com/results?domain=${encodeURIComponent(domain)}`,
       { waitUntil: 'load', timeout: 30000 }
     );
-    // Wait until "Scanned on" appears — this text is only present after all
-    // DNS lookups are complete and the final score has been computed
+    // Wait for "Scanned on" to appear (analysis started)
     await page.waitForFunction(() => {
       return document.body.innerText.includes('Scanned on');
     }, { timeout: 60000 });
+
+    // Wait for the score to stabilize — "Scanned on" appears while score is still
+    // 0, then the final score is computed over the next few seconds as DNS lookups
+    // complete. Poll until score stops changing.
+    let lastScore = null;
+    for (let i = 0; i < 15; i++) {
+      await page.waitForTimeout(1000);
+      const current = await page.evaluate(() => {
+        const text = document.body.innerText;
+        const m = text.match(/(\d{1,3})[\r\n]+Grade:/);
+        return m ? m[1] : null;
+      });
+      if (current !== null && current === lastScore) break;
+      lastScore = current;
+    }
 
     const result = await page.evaluate(() => {
       const text  = document.body.innerText;
