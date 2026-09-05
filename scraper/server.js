@@ -17,7 +17,10 @@ function cacheGet(domain) {
   try {
     const f = path.join(CACHE_DIR, domain + '.json');
     const stat = fs.statSync(f);
-    if (Date.now() - stat.mtimeMs > CACHE_TTL_MS) return null;
+    if (Date.now() - stat.mtimeMs > CACHE_TTL_MS) {
+      try { fs.unlinkSync(f); } catch {}
+      return null;
+    }
     return JSON.parse(fs.readFileSync(f, 'utf8'));
   } catch { return null; }
 }
